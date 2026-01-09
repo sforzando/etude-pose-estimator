@@ -80,6 +80,7 @@ async def analyze_pose(
         # Compare with reference pose if provided
         similarity_score = None
         angle_differences = None
+        ref_angles = None
 
         if reference_pose:
             ref_path = REFERENCE_DIR / f"{reference_pose}.json"
@@ -109,7 +110,7 @@ async def analyze_pose(
                 "similarity_score": similarity_score,
                 "angle_differences": angle_differences,
                 "reference_pose": reference_pose,
-                "ref_angles": ref_angles if reference_pose else None,
+                "ref_angles": ref_angles,
             },
         )
 

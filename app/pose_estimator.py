@@ -36,7 +36,13 @@ class PoseEstimator:
             try:
                 with urllib.request.urlopen(req) as response:
                     with open(model_path, "wb") as out_file:
-                        out_file.write(response.read())
+                        # Download in chunks to avoid memory issues
+                        chunk_size = 8192
+                        while True:
+                            chunk = response.read(chunk_size)
+                            if not chunk:
+                                break
+                            out_file.write(chunk)
                 print("Model downloaded successfully.")
             except Exception as e:
                 print(f"Error downloading model: {e}")
