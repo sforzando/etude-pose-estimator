@@ -54,9 +54,21 @@ async def analyze_pose(
     reference_pose: str | None = Form(None),
 ):
     """Analyze pose from uploaded image."""
+    file_path = None
     try:
+        # Validate file extension
+        allowed_extensions = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+        file_extension = Path(image.filename).suffix.lower() if image.filename else ".jpg"
+        if file_extension not in allowed_extensions:
+            return templates.TemplateResponse(
+                "result.html",
+                {
+                    "request": request,
+                    "error": f"Invalid file type. Allowed: {', '.join(allowed_extensions)}",
+                },
+            )
+
         # Save uploaded file temporarily with secure filename
-        file_extension = Path(image.filename).suffix if image.filename else ".jpg"
         secure_filename = f"{uuid.uuid4()}{file_extension}"
         file_path = UPLOAD_DIR / secure_filename
         with open(file_path, "wb") as buffer:
@@ -99,9 +111,6 @@ async def analyze_pose(
                     if joint in ref_angles:
                         angle_differences[joint] = abs(angles[joint] - ref_angles[joint])
 
-        # Clean up uploaded file
-        os.remove(file_path)
-
         return templates.TemplateResponse(
             "result.html",
             {
@@ -122,6 +131,10 @@ async def analyze_pose(
                 "error": f"Error analyzing pose: {str(e)}",
             },
         )
+    finally:
+        # Always clean up uploaded file
+        if file_path and file_path.exists():
+            os.remove(file_path)
 
 
 @app.post("/register-reference")
@@ -131,9 +144,21 @@ async def register_reference_pose(
     image: UploadFile = File(...),
 ):
     """Register a new reference pose."""
+    file_path = None
     try:
+        # Validate file extension
+        allowed_extensions = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+        file_extension = Path(image.filename).suffix.lower() if image.filename else ".jpg"
+        if file_extension not in allowed_extensions:
+            return templates.TemplateResponse(
+                "register_result.html",
+                {
+                    "request": request,
+                    "error": f"Invalid file type. Allowed: {', '.join(allowed_extensions)}",
+                },
+            )
+
         # Save uploaded file temporarily with secure filename
-        file_extension = Path(image.filename).suffix if image.filename else ".jpg"
         secure_filename = f"{uuid.uuid4()}{file_extension}"
         file_path = UPLOAD_DIR / secure_filename
         with open(file_path, "wb") as buffer:
@@ -156,9 +181,6 @@ async def register_reference_pose(
         with open(ref_path, "w") as f:
             json.dump({"name": name, "landmarks": landmarks}, f, indent=2)
 
-        # Clean up uploaded file
-        os.remove(file_path)
-
         return templates.TemplateResponse(
             "register_result.html",
             {
@@ -176,6 +198,10 @@ async def register_reference_pose(
                 "error": f"Error registering reference pose: {str(e)}",
             },
         )
+    finally:
+        # Always clean up uploaded file
+        if file_path and file_path.exists():
+            os.remove(file_path)
 
 
 if __name__ == "__main__":

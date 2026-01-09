@@ -66,8 +66,16 @@ class PoseAnalyzer:
         v1 = p1 - p2
         v2 = p3 - p2
 
+        # Check for zero-length vectors to avoid division by zero
+        norm_v1 = np.linalg.norm(v1)
+        norm_v2 = np.linalg.norm(v2)
+
+        if norm_v1 == 0 or norm_v2 == 0:
+            # Return 180 degrees for straight/undefined angles
+            return 180.0
+
         # Calculate angle using dot product
-        cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+        cos_angle = np.dot(v1, v2) / (norm_v1 * norm_v2)
 
         # Clamp to [-1, 1] to avoid numerical errors
         cos_angle = np.clip(cos_angle, -1.0, 1.0)
