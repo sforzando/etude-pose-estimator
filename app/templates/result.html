@@ -1,0 +1,98 @@
+{% if error %}
+<div class="alert alert-error">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>{{ error }}</span>
+</div>
+{% else %}
+<div class="space-y-6">
+    <!-- Success Alert -->
+    <div class="alert alert-success">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>姿勢を検出しました！</span>
+    </div>
+
+    <!-- Similarity Score (if comparing with reference) -->
+    {% if similarity_score is not none %}
+    <div class="card bg-primary text-primary-content">
+        <div class="card-body">
+            <h3 class="card-title text-2xl">類似度スコア</h3>
+            <div class="flex items-center justify-center">
+                <div class="radial-progress text-primary-content" style="--value:{{ similarity_score }}; --size:12rem; --thickness: 1rem;" role="progressbar">
+                    <span class="text-4xl font-bold">{{ similarity_score }}%</span>
+                </div>
+            </div>
+            <p class="text-center mt-2">基準ポーズ: <span class="font-bold">{{ reference_pose }}</span></p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Joint Angles -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h3 class="card-title text-xl mb-4">関節角度</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for joint, angle in angles.items() %}
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">{{ joint.replace('_', ' ').title() }}</div>
+                    <div class="stat-value text-primary">{{ "%.1f"|format(angle) }}°</div>
+                    {% if angle_differences and joint in angle_differences %}
+                    <div class="stat-desc">
+                        差分: <span class="font-bold {% if angle_differences[joint] > 10 %}text-error{% elif angle_differences[joint] > 5 %}text-warning{% else %}text-success{% endif %}">
+                            {{ "%.1f"|format(angle_differences[joint]) }}°
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Angle Differences Table (if comparing) -->
+    {% if angle_differences %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h3 class="card-title text-xl mb-4">角度差分の詳細</h3>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>関節</th>
+                            <th>現在の角度</th>
+                            <th>基準角度</th>
+                            <th>差分</th>
+                            <th>評価</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for joint in angles.keys() %}
+                        {% if joint in angle_differences %}
+                        <tr>
+                            <td class="font-medium">{{ joint.replace('_', ' ').title() }}</td>
+                            <td>{{ "%.1f"|format(angles[joint]) }}°</td>
+                            <td>{{ "%.1f"|format(angles[joint] - angle_differences[joint] if angles[joint] > (angles[joint] - angle_differences[joint]) else angles[joint] + angle_differences[joint]) }}°</td>
+                            <td class="font-bold">{{ "%.1f"|format(angle_differences[joint]) }}°</td>
+                            <td>
+                                {% if angle_differences[joint] <= 5 %}
+                                <span class="badge badge-success">良好</span>
+                                {% elif angle_differences[joint] <= 10 %}
+                                <span class="badge badge-warning">注意</span>
+                                {% else %}
+                                <span class="badge badge-error">要改善</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}

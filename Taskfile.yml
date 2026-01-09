@@ -1,0 +1,34 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install dependencies using uv
+    cmds:
+      - uv pip install -e ".[dev]"
+
+  dev:
+    desc: Run development server
+    cmds:
+      - uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+  lint:
+    desc: Run linting with Ruff
+    cmds:
+      - ruff check .
+
+  format:
+    desc: Format code with Ruff
+    cmds:
+      - ruff format .
+
+  lint-fix:
+    desc: Fix linting issues with Ruff
+    cmds:
+      - ruff check --fix .
+
+  clean:
+    desc: Clean temporary files
+    cmds:
+      - rm -rf __pycache__ .pytest_cache .ruff_cache
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
+      - find . -type f -name "*.pyc" -delete

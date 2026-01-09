@@ -1,0 +1,9 @@
+# Example environment variables for direnv
+# Copy this to .envrc.local and customize as needed
+
+# Python environment
+export PYTHONPATH="${PWD}"
+
+# Application settings
+export PORT=8000
+export HOST=0.0.0.0
