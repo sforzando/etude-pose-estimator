@@ -56,7 +56,18 @@ uv pip install -e ".[dev]"
 task install
 ```
 
-3. 環境変数を設定（オプション）:
+3. MediaPipe Pose Landmarkerモデルをダウンロード:
+```bash
+# ライトモデル（推奨）
+curl -L -o pose_landmarker.task "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
+
+# または、フルモデル（より高精度）
+curl -L -o pose_landmarker.task "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task"
+```
+
+**注**: ネットワーク環境によってはダウンロードが制限される場合があります。その場合は、ブラウザで上記URLにアクセスしてファイルを手動でダウンロードし、プロジェクトルートに `pose_landmarker.task` として配置してください。
+
+4. 環境変数を設定（オプション）:
 ```bash
 cp .envrc.example .envrc.local
 direnv allow
