@@ -96,7 +96,7 @@ def test_reference_pose_storage():
         json.dump({"name": ref_name, "landmarks": SAMPLE_LANDMARKS}, f, indent=2)
 
     # Read it back
-    with open(ref_path, "r") as f:
+    with open(ref_path) as f:
         data = json.load(f)
 
     assert data["name"] == ref_name

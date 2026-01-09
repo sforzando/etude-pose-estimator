@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
@@ -54,8 +55,10 @@ async def analyze_pose(
 ):
     """Analyze pose from uploaded image."""
     try:
-        # Save uploaded file temporarily
-        file_path = UPLOAD_DIR / image.filename
+        # Save uploaded file temporarily with secure filename
+        file_extension = Path(image.filename).suffix if image.filename else ".jpg"
+        secure_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = UPLOAD_DIR / secure_filename
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
@@ -88,7 +91,7 @@ async def analyze_pose(
                 # Calculate Procrustes similarity
                 similarity_score = pose_analyzer.calculate_similarity(landmarks, ref_landmarks)
 
-                # Calculate angle differences
+                # Calculate angle differences and reference angles
                 ref_angles = pose_analyzer.calculate_joint_angles(ref_landmarks)
                 angle_differences = {}
                 for joint in angles:
@@ -106,6 +109,7 @@ async def analyze_pose(
                 "similarity_score": similarity_score,
                 "angle_differences": angle_differences,
                 "reference_pose": reference_pose,
+                "ref_angles": ref_angles if reference_pose else None,
             },
         )
 
@@ -127,8 +131,10 @@ async def register_reference_pose(
 ):
     """Register a new reference pose."""
     try:
-        # Save uploaded file temporarily
-        file_path = UPLOAD_DIR / image.filename
+        # Save uploaded file temporarily with secure filename
+        file_extension = Path(image.filename).suffix if image.filename else ".jpg"
+        secure_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = UPLOAD_DIR / secure_filename
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 

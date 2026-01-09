@@ -28,15 +28,11 @@ class PoseEstimator:
         if not model_path.exists():
             print("Downloading MediaPipe Pose Landmarker model...")
             url = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
-            
+
             # Create a request with proper headers
-            req = urllib.request.Request(
-                url,
-                headers={
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-                },
-            )
-            
+            user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+            req = urllib.request.Request(url, headers={"User-Agent": user_agent})
+
             try:
                 with urllib.request.urlopen(req) as response:
                     with open(model_path, "wb") as out_file:

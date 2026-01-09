@@ -74,7 +74,7 @@
                         <tr>
                             <td class="font-medium">{{ joint.replace('_', ' ').title() }}</td>
                             <td>{{ "%.1f"|format(angles[joint]) }}°</td>
-                            <td>{{ "%.1f"|format(angles[joint] - angle_differences[joint] if angles[joint] > (angles[joint] - angle_differences[joint]) else angles[joint] + angle_differences[joint]) }}°</td>
+                            <td>{{ "%.1f"|format(ref_angles[joint]) if ref_angles else "-" }}°</td>
                             <td class="font-bold">{{ "%.1f"|format(angle_differences[joint]) }}°</td>
                             <td>
                                 {% if angle_differences[joint] <= 5 %}
