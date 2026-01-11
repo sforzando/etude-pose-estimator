@@ -81,7 +81,7 @@ class Settings(BaseSettings):
         description="Directory for storing reference pose JSON files",
     )
     upload_dir: Path = Field(
-        default=Path("uploads"),
+        default=Path("data/uploads"),
         description="Directory for temporary uploaded files",
     )
 

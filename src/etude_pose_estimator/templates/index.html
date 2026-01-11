@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dim">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pose-estimator - ポーズ品質管理</title>
+
+  <!-- Tailwind CSS + daisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>
+
+  <!-- htmx -->
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js" defer></script>
+</head>
+
+<body class="min-h-screen bg-base-200">
+  <!-- Navbar -->
+  <div class="navbar bg-base-100 shadow-lg">
+    <div class="flex-1">
+      <a class="btn btn-ghost text-xl">🦸 pose-estimator</a>
+    </div>
+  </div>
+
+  <!-- System Status Alert -->
+  {% if component_status %}
+  <div class="container mx-auto px-4 py-4">
+    {% set has_errors = namespace(value=false) %}
+    {% for component, status in component_status.items() %}
+    {% if status != "OK" %}
+    {% set has_errors.value = true %}
+    {% endif %}
+    {% endfor %}
+
+    {% if has_errors.value %}
+    <div role="alert" class="alert alert-warning">
+      <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <div>
+        <h3 class="font-bold">一部のコンポーネントが初期化されていません</h3>
+        <ul class="list-disc list-inside text-xs mt-2">
+          {% for component, status in component_status.items() %}
+          {% if status != "OK" %}
+          <li>{{ component }}: {{ status }}</li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Main Content -->
+  <div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Tabs -->
+      <div role="tablist" class="tabs tabs-lifted">
+        <!-- Analyze Tab -->
+        <input type="radio" name="main_tabs" role="tab" class="tab" aria-label="ポーズ解析" checked />
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+          <h2 class="text-2xl font-bold mb-6">ポーズ解析・比較</h2>
+
+          <form hx-post="/api/compare" hx-target="#result-container" hx-encoding="multipart/form-data"
+            hx-indicator="#loading-analyze" class="space-y-6">
+            <fieldset class="space-y-6">
+              <legend class="sr-only">ポーズ解析フォーム</legend>
+
+              <!-- Reference Selection -->
+              <div class="form-control w-full">
+                <label class="label">
+                  <span class="label-text">基準ポーズ</span>
+                </label>
+                <div class="join w-full">
+                  <select name="reference_name" class="select select-bordered w-full join-item" required
+                    id="reference-select" onchange="showReferenceImage(this.value)">
+                    <option disabled selected value="">基準ポーズを選択してください</option>
+                    {% for ref in references %}
+                    <option value="{{ ref.name }}">{{ ref.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="btn btn-ghost join-item" onclick="resetReferenceSelection()">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                {% if not references %}
+                <label class="label">
+                  <span class="label-text-alt text-warning">まだ基準ポーズが登録されていません。「基準ポーズ登録」タブから登録してください。</span>
+                </label>
+                {% endif %}
+              </div>
+
+              <!-- Reference Image Preview -->
+              <div id="reference-preview" class="hidden mt-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <!-- Original Image -->
+                  <div class="card bg-base-100 shadow-xl">
+                    <figure class="px-6 pt-6">
+                      <img id="reference-preview-img" alt="基準ポーズ" class="rounded-xl max-h-80 object-contain w-full" />
+                    </figure>
+                    <div class="card-body items-center text-center">
+                      <p class="text-sm text-base-content/70">元画像</p>
+                      <p id="reference-preview-name" class="text-sm font-medium"></p>
+                    </div>
+                  </div>
+
+                  <!-- Skeleton Visualization -->
+                  <div class="card bg-base-100 shadow-xl">
+                    <figure class="px-6 pt-6">
+                      <img id="reference-skeleton-img" alt="スケルトン" class="rounded-xl max-h-80 object-contain w-full" />
+                    </figure>
+                    <div class="card-body items-center text-center">
+                      <p class="text-sm text-base-content/70">検出されたポーズ骨格</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="divider">解析画像アップロード</div>
+
+              <!-- Image Upload -->
+              <div class="form-control w-full">
+                <label class="label">
+                  <span class="label-text">解析する画像</span>
+                </label>
+                <input type="file" name="image" accept="image/jpeg,image/jpg,image/png"
+                  class="file-input file-input-bordered w-full" required id="analyze-image-input"
+                  onchange="previewImage(this, 'analyze-preview')" />
+                <label class="label">
+                  <span class="label-text-alt">対応形式: JPEG, PNG（最大100MB）</span>
+                </label>
+              </div>
+
+              <!-- Image Preview -->
+              <div id="analyze-preview" class="hidden">
+                <div class="card bg-base-100 shadow-xl">
+                  <figure class="px-10 pt-10">
+                    <img id="analyze-preview-img" alt="Preview" class="rounded-xl max-h-96 object-contain" />
+                  </figure>
+                  <div class="card-body items-center text-center">
+                    <p class="text-sm text-base-content/70">アップロード予定の画像</p>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Submit Button -->
+            <div class="join w-full">
+              <button type="submit" class="btn btn-primary join-item flex-1">
+                <span class="loading loading-spinner loading-sm hidden htmx-indicator" id="loading-analyze"></span>
+                解析開始
+              </button>
+              <button type="reset" class="btn btn-ghost join-item"
+                onclick="document.getElementById('result-container').innerHTML = ''">
+                クリア
+              </button>
+            </div>
+          </form>
+
+          <div class="divider"></div>
+
+          <!-- Results Container -->
+          <div id="result-container"></div>
+        </div>
+
+        <!-- Register Tab -->
+        <input type="radio" name="main_tabs" role="tab" class="tab" aria-label="基準ポーズ登録" />
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+          <h2 class="text-2xl font-bold mb-6">基準ポーズ登録</h2>
+
+          <form hx-post="/api/reference" hx-target="#register-result-container" hx-encoding="multipart/form-data"
+            hx-indicator="#loading-register" class="space-y-6">
+            <fieldset class="space-y-6">
+              <legend class="sr-only">基準ポーズ登録フォーム</legend>
+
+              <!-- Hidden name field for auto-numbering -->
+              <input type="hidden" name="name" value="" />
+
+              <div class="alert alert-info">
+                <svg fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>ポーズ名は自動採番されます（Pose-001, Pose-002...）</span>
+              </div>
+
+              <!-- Image Upload -->
+              <div class="form-control w-full">
+                <label class="label">
+                  <span class="label-text">基準ポーズ画像</span>
+                </label>
+                <input type="file" name="image" accept="image/jpeg,image/jpg,image/png"
+                  class="file-input file-input-bordered w-full" required id="register-image-input"
+                  onchange="previewImage(this, 'register-preview')" />
+                <label class="label">
+                  <span class="label-text-alt">対応形式: JPEG, PNG（最大100MB）</span>
+                </label>
+              </div>
+
+              <!-- Image Preview -->
+              <div id="register-preview" class="hidden">
+                <div class="card bg-base-100 shadow-xl">
+                  <figure class="px-10 pt-10">
+                    <img id="register-preview-img" alt="Preview" class="rounded-xl max-h-96 object-contain" />
+                  </figure>
+                  <div class="card-body items-center text-center">
+                    <p class="text-sm text-base-content/70">登録予定の画像</p>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Submit Button -->
+            <div class="join w-full">
+              <button type="submit" class="btn btn-success join-item flex-1">
+                <span class="loading loading-spinner loading-sm hidden htmx-indicator" id="loading-register"></span>
+                登録
+              </button>
+              <button type="reset" class="btn btn-ghost join-item"
+                onclick="document.getElementById('register-result-container').innerHTML = ''">
+                クリア
+              </button>
+            </div>
+          </form>
+
+          <div class="divider"></div>
+
+          <!-- Register Results Container -->
+          <div id="register-result-container"></div>
+        </div>
+
+        <!-- Manage Tab -->
+        <input type="radio" name="main_tabs" role="tab" class="tab" aria-label="基準ポーズ管理" />
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+          <h2 class="text-2xl font-bold mb-6">基準ポーズ管理</h2>
+
+          <div class="alert alert-info mb-6">
+            <svg fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>登録済みの基準ポーズを確認・削除できます。</span>
+          </div>
+
+          <!-- Reference List -->
+          <div id="reference-list-container" hx-get="/api/references" hx-trigger="load, referenceUpdated from:body"
+            hx-swap="innerHTML">
+            <div class="flex justify-center py-8">
+              <span class="loading loading-spinner loading-lg"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer footer-center p-4 bg-base-300 text-base-content mt-8">
+    <aside>
+      <p>etude-pose-estimator v0.1.0 - Hero Pose Quality Management System</p>
+    </aside>
+  </footer>
+
+  <script>
+    // Show reference pose image when selected
+    function showReferenceImage(referenceName) {
+      const preview = document.getElementById('reference-preview');
+      const previewImg = document.getElementById('reference-preview-img');
+      const skeletonImg = document.getElementById('reference-skeleton-img');
+      const previewName = document.getElementById('reference-preview-name');
+
+      if (referenceName && referenceName !== '') {
+        // Update image sources to load from API
+        previewImg.src = '/api/references/' + encodeURIComponent(referenceName) + '/image';
+        skeletonImg.src = '/api/references/' + encodeURIComponent(referenceName) + '/skeleton';
+        previewName.textContent = referenceName;
+        preview.classList.remove('hidden');
+
+        // Handle image load error
+        previewImg.onerror = function () {
+          preview.classList.add('hidden');
+        };
+
+        // If skeleton fails to load, just hide that card
+        skeletonImg.onerror = function () {
+          this.parentElement.parentElement.classList.add('hidden');
+        };
+      } else {
+        preview.classList.add('hidden');
+      }
+    }
+
+    // Reset reference pose selection
+    function resetReferenceSelection() {
+      const select = document.getElementById('reference-select');
+      const preview = document.getElementById('reference-preview');
+
+      // Reset select to first (disabled) option
+      select.selectedIndex = 0;
+
+      // Hide preview
+      preview.classList.add('hidden');
+    }
+
+    // Image preview function for uploaded files
+    function previewImage(input, previewId) {
+      const preview = document.getElementById(previewId);
+      const previewImg = document.getElementById(previewId + '-img');
+
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          previewImg.src = e.target.result;
+          preview.classList.remove('hidden');
+        };
+
+        reader.readAsDataURL(input.files[0]);
+      } else {
+        preview.classList.add('hidden');
+      }
+    }
+
+    // HTMX indicator display control
+    document.body.addEventListener('htmx:beforeRequest', (event) => {
+      const indicator = document.getElementById(event.detail.elt.getAttribute('hx-indicator'));
+      if (indicator) {
+        indicator.classList.remove('hidden');
+      }
+    });
+
+    document.body.addEventListener('htmx:afterRequest', (event) => {
+      const indicator = document.getElementById(event.detail.elt.getAttribute('hx-indicator'));
+      if (indicator) {
+        indicator.classList.add('hidden');
+      }
+    });
+
+    // Track if we should skip reload (e.g., after successful registration)
+    let skipReload = false;
+
+    // Reload references after registration
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+      if (event.detail.target.id === 'register-result-container' && !skipReload) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
+    });
+
+    // Listen for custom event to switch to management tab after registration
+    document.body.addEventListener('showRegisteredSkeleton', (event) => {
+      const poseName = event.detail.name;
+      if (poseName) {
+        // Skip the page reload
+        skipReload = true;
+
+        // Switch to management tab to show the registered pose immediately
+        setTimeout(() => {
+          const managementTab = document.querySelector('input[type="radio"][aria-label="基準ポーズ管理"]');
+          if (managementTab) {
+            managementTab.checked = true;
+            // Trigger htmx to reload the reference list
+            const referenceListContainer = document.getElementById('reference-list-container');
+            if (referenceListContainer) {
+              htmx.trigger(referenceListContainer, 'referenceUpdated');
+
+              // Wait for the list to reload, then open the skeleton modal
+              setTimeout(() => {
+                // Open the skeleton modal directly
+                if (typeof showSkeletonModal === 'function') {
+                  showSkeletonModal(poseName);
+                }
+              }, 500);
+            }
+          }
+          // Reset flag after tab switch
+          setTimeout(() => { skipReload = false; }, 100);
+        }, 500);
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -35,7 +35,7 @@ class GeminiAdviceGenerator:
             raise ValueError("Gemini API key cannot be empty")
 
         self.client = genai.Client(api_key=api_key)
-        self.model_name = "gemini-2.0-flash-exp"
+        self.model_name = "gemini-3-flash-preview"
 
     def generate_advice(
         self,

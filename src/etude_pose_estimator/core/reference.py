@@ -5,6 +5,7 @@ as JSON files. Simple, database-free, human-readable, and easy to backup.
 """
 
 import json
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,8 @@ class ReferencePoseManager:
     """Manager for reference pose storage and retrieval.
 
     Stores reference poses as JSON files in a designated directory.
-    Each pose includes 2D keypoints, 3D coordinates, joint angles, and metadata.
+    Each pose includes 2D keypoints, 3D coordinates, joint angles, metadata,
+    and the original image file.
 
     JSON file structure:
     {
@@ -25,11 +27,13 @@ class ReferencePoseManager:
         "pose_2d": [[x, y, conf], ...],
         "pose_3d": [[x, y, z], ...],
         "angles": {"left_elbow": 120.5, ...},
-        "metadata": {"character": "Ultraman", ...}
+        "metadata": {"character": "Ultraman", ...},
+        "image_filename": "specium_beam.jpg"
     }
 
     Attributes:
         reference_dir: Directory for storing reference pose JSON files
+        images_dir: Directory for storing reference pose images
     """
 
     def __init__(self, reference_dir: Path) -> None:
@@ -39,10 +43,13 @@ class ReferencePoseManager:
             reference_dir: Directory for storing reference pose JSON files
 
         Note:
-            Creates the directory if it doesn't exist
+            Creates the directory and images subdirectory if they don't exist
         """
         self.reference_dir = reference_dir
         self.reference_dir.mkdir(parents=True, exist_ok=True)
+
+        self.images_dir = reference_dir / "images"
+        self.images_dir.mkdir(parents=True, exist_ok=True)
 
     def save(
         self,
@@ -51,6 +58,8 @@ class ReferencePoseManager:
         pose_3d: np.ndarray,
         angles: dict[str, float],
         metadata: dict[str, Any] | None = None,
+        image_path: Path | None = None,
+        skeleton_image_path: Path | None = None,
     ) -> None:
         """Save a reference pose.
 
@@ -60,6 +69,8 @@ class ReferencePoseManager:
             pose_3d: 3D keypoints array (17, 3) [x, y, z]
             angles: Joint angles dictionary
             metadata: Optional additional metadata
+            image_path: Optional path to the original image file
+            skeleton_image_path: Optional path to the skeleton visualization image
 
         Raises:
             ValueError: If a pose with the same name already exists
@@ -77,6 +88,30 @@ class ReferencePoseManager:
         if file_path.exists():
             raise ValueError(f"Reference pose '{name}' already exists")
 
+        safe_name = self._get_safe_name(name)
+
+        # Save image if provided
+        image_filename = None
+        if image_path and image_path.exists():
+            # Use original extension
+            extension = image_path.suffix
+            image_filename = f"{safe_name}{extension}"
+            image_dest = self.images_dir / image_filename
+
+            # Copy image to references/images/
+            shutil.copy2(image_path, image_dest)
+
+        # Save skeleton image if provided
+        skeleton_filename = None
+        if skeleton_image_path and skeleton_image_path.exists():
+            # Use original extension
+            extension = skeleton_image_path.suffix
+            skeleton_filename = f"{safe_name}_skeleton{extension}"
+            skeleton_dest = self.images_dir / skeleton_filename
+
+            # Copy skeleton image to references/images/
+            shutil.copy2(skeleton_image_path, skeleton_dest)
+
         # Prepare data
         data = {
             "name": name,
@@ -85,6 +120,8 @@ class ReferencePoseManager:
             "pose_3d": pose_3d.tolist(),
             "angles": angles,
             "metadata": metadata or {},
+            "image_filename": image_filename,
+            "skeleton_filename": skeleton_filename,
         }
 
         # Save as JSON
@@ -174,6 +211,29 @@ class ReferencePoseManager:
         if not file_path.exists():
             raise FileNotFoundError(f"Reference pose '{name}' not found")
 
+        # Load data to get image filenames
+        try:
+            with open(file_path, encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Delete original image if exists
+            image_filename = data.get("image_filename")
+            if image_filename:
+                image_path = self.images_dir / image_filename
+                if image_path.exists():
+                    image_path.unlink()
+
+            # Delete skeleton image if exists
+            skeleton_filename = data.get("skeleton_filename")
+            if skeleton_filename:
+                skeleton_path = self.images_dir / skeleton_filename
+                if skeleton_path.exists():
+                    skeleton_path.unlink()
+        except (json.JSONDecodeError, KeyError):
+            # Continue with JSON deletion even if image cleanup fails
+            pass
+
+        # Delete JSON file
         file_path.unlink()
 
     def exists(self, name: str) -> bool:
@@ -187,6 +247,87 @@ class ReferencePoseManager:
         """
         return self._get_file_path(name).exists()
 
+    def generate_next_pose_name(self) -> str:
+        """Generate next available pose name with auto-numbering.
+
+        Scans existing poses with pattern "Pose-XXX" and returns the next
+        available number in the sequence.
+
+        Returns:
+            Next available pose name in format "Pose-001", "Pose-002", etc.
+        """
+        # List all existing references
+        references = self.list_references()
+
+        # Find maximum number from "Pose-XXX" pattern
+        max_num = 0
+        for ref in references:
+            name = ref.get("name", "")
+            if name.startswith("Pose-") and len(name) == 8:  # "Pose-XXX"
+                try:
+                    num = int(name[5:])  # Extract XXX part
+                    max_num = max(max_num, num)
+                except ValueError:
+                    # Not a valid number, skip
+                    continue
+
+        # Return next number
+        next_num = max_num + 1
+        return f"Pose-{next_num:03d}"
+
+    def get_image_path(self, name: str) -> Path | None:
+        """Get image path for a reference pose.
+
+        Args:
+            name: Name of the reference pose
+
+        Returns:
+            Path to the image file if it exists, None otherwise
+        """
+        try:
+            data = self.load(name)
+            image_filename = data.get("image_filename")
+            if image_filename:
+                image_path = self.images_dir / image_filename
+                if image_path.exists():
+                    return image_path
+        except FileNotFoundError:
+            pass
+
+        return None
+
+    def get_skeleton_image_path(self, name: str) -> Path | None:
+        """Get skeleton image path for a reference pose.
+
+        Args:
+            name: Name of the reference pose
+
+        Returns:
+            Path to the skeleton image file if it exists, None otherwise
+        """
+        try:
+            data = self.load(name)
+            skeleton_filename = data.get("skeleton_filename")
+            if skeleton_filename:
+                skeleton_path = self.images_dir / skeleton_filename
+                if skeleton_path.exists():
+                    return skeleton_path
+        except FileNotFoundError:
+            pass
+
+        return None
+
+    def _get_safe_name(self, name: str) -> str:
+        """Get filesystem-safe name.
+
+        Args:
+            name: Original name
+
+        Returns:
+            Sanitized name safe for filesystem
+        """
+        return "".join(c if c.isalnum() or c in [" ", "-", "_"] else "_" for c in name)
+
     def _get_file_path(self, name: str) -> Path:
         """Get file path for a reference pose.
 
@@ -196,6 +337,5 @@ class ReferencePoseManager:
         Returns:
             Path to the JSON file
         """
-        # Sanitize name for filesystem safety
-        safe_name = "".join(c if c.isalnum() or c in [" ", "-", "_"] else "_" for c in name)
+        safe_name = self._get_safe_name(name)
         return self.reference_dir / f"{safe_name}.json"

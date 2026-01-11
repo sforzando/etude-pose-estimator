@@ -94,6 +94,88 @@ class YOLO11xPoseDetector:
 
         return kpts
 
+    def detect_detailed(
+        self,
+        image_path: Path,
+        conf_threshold: float = 0.5,
+    ) -> tuple[np.ndarray, tuple[float, float, float, float], float] | None:
+        """Detect 2D pose with bounding box and confidence.
+
+        Args:
+            image_path: Path to input image file
+            conf_threshold: Confidence threshold for detection (0.0-1.0)
+
+        Returns:
+            Tuple of (keypoints, bbox, confidence) or None if no pose detected:
+            - keypoints: NumPy array (17, 3) [x, y, confidence] in normalized coords
+            - bbox: Tuple (x_min, y_min, x_max, y_max) in normalized coords
+            - confidence: Detection confidence (0-1)
+
+        Raises:
+            FileNotFoundError: If image file does not exist
+        """
+        if not image_path.exists():
+            raise FileNotFoundError(f"Image not found at {image_path}")
+
+        # Run inference
+        results = self.model(str(image_path), verbose=False)
+
+        # Check if any poses were detected
+        if len(results) == 0 or results[0].keypoints is None:
+            return None
+
+        # Get keypoints for the first person only
+        keypoints = results[0].keypoints
+
+        if keypoints.data is None or len(keypoints.data) == 0:
+            return None
+
+        # Extract keypoints: shape (num_people, 17, 3) -> (17, 3) for first person
+        kpts = keypoints.data[0].cpu().numpy()
+
+        # Check if confidence is above threshold
+        avg_conf = kpts[:, 2].mean()
+        if avg_conf < conf_threshold:
+            return None
+
+        # Get bounding box (from boxes if available)
+        bbox = None
+        detection_conf = avg_conf
+
+        if results[0].boxes is not None and len(results[0].boxes) > 0:
+            # Get first box
+            box = results[0].boxes[0]
+            box_coords = box.xyxy[0].cpu().numpy()  # [x1, y1, x2, y2]
+            detection_conf = float(box.conf[0].cpu().numpy())
+
+            # Normalize bbox coordinates
+            img_height, img_width = results[0].orig_shape
+            bbox = (
+                float(box_coords[0] / img_width),  # x_min
+                float(box_coords[1] / img_height),  # y_min
+                float(box_coords[2] / img_width),  # x_max
+                float(box_coords[3] / img_height),  # y_max
+            )
+        else:
+            # Calculate bbox from keypoints
+            valid_kpts = kpts[kpts[:, 2] > 0.3]  # Filter by confidence
+            if len(valid_kpts) > 0:
+                x_coords = valid_kpts[:, 0]
+                y_coords = valid_kpts[:, 1]
+                bbox = (
+                    float(x_coords.min()),
+                    float(y_coords.min()),
+                    float(x_coords.max()),
+                    float(y_coords.max()),
+                )
+
+        # Normalize coordinates to 0-1 range
+        img_height, img_width = results[0].orig_shape
+        kpts[:, 0] /= img_width  # Normalize x
+        kpts[:, 1] /= img_height  # Normalize y
+
+        return kpts, bbox, detection_conf
+
     def detect_batch(
         self,
         image_paths: list[Path],

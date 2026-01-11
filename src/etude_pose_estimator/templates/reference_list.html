@@ -1,0 +1,78 @@
+<!-- Reference Pose List Fragment -->
+{% if references %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {% for ref in references %}
+  <div class="card bg-base-100 shadow-xl transition-all duration-300" data-pose-name="{{ ref.name }}" id="pose-{{ ref.name }}">
+    <figure class="px-6 pt-6 cursor-pointer" onclick="showSkeletonModal('{{ ref.name }}')">
+      {% if ref.skeleton_filename %}
+      <img src="/api/references/{{ ref.name }}/skeleton" alt="{{ ref.name }}"
+        class="rounded-xl max-h-48 object-contain w-full hover:opacity-80 transition-opacity"
+        onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 200%22%3E%3Crect fill=%22%23ddd%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2214%22%3E骨格なし%3C/text%3E%3C/svg%3E'" />
+      {% else %}
+      <div class="bg-base-200 rounded-xl h-48 w-full flex items-center justify-center">
+        <span class="text-base-content/50">骨格なし</span>
+      </div>
+      {% endif %}
+    </figure>
+    <div class="card-body">
+      <h3 class="card-title text-base">
+        {{ ref.name }}
+      </h3>
+      <p class="text-sm text-base-content/70">
+        登録日時: {{ ref.created_at[:10] }}
+      </p>
+
+      <div class="card-actions justify-end mt-4">
+        <!-- Delete Button -->
+        <button class="btn btn-sm btn-error"
+          hx-delete="/api/references/{{ ref.name }}" hx-confirm="「{{ ref.name }}」を削除してもよろしいですか？"
+          hx-target="#reference-list-container" hx-swap="innerHTML">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>
+          削除
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert">
+  <svg fill="none" viewBox="0 0 24 24" class="stroke-info shrink-0 w-6 h-6">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+  </svg>
+  <span>基準ポーズが登録されていません。「基準ポーズ登録」タブから登録してください。</span>
+</div>
+{% endif %}
+
+<!-- Skeleton Modal for enlarged view -->
+<dialog id="skeleton-modal" class="modal">
+  <div class="modal-box max-w-4xl">
+    <form method="dialog">
+      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+    </form>
+    <h3 class="font-bold text-lg mb-4" id="skeleton-modal-title">骨格図拡大表示</h3>
+    <div class="flex justify-center">
+      <img id="skeleton-modal-img" alt="骨格図" class="max-h-[70vh] object-contain" />
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
+<script>
+  function showSkeletonModal(referenceName) {
+    const modal = document.getElementById('skeleton-modal');
+    const img = document.getElementById('skeleton-modal-img');
+    const title = document.getElementById('skeleton-modal-title');
+
+    img.src = '/api/references/' + encodeURIComponent(referenceName) + '/skeleton';
+    title.textContent = referenceName + ' - 骨格図拡大表示';
+
+    modal.showModal();
+  }
+</script>

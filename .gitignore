@@ -286,6 +286,9 @@ pyrightconfig.json
 
 ### Project Specific ###
 
+# Playwright files
+.playwright-mcp/
+
 # Model files (large binary files)
 models/*.pt
 models/*.pth
@@ -293,11 +296,11 @@ models/*.pth.tar
 models/MotionBERT/
 
 # Uploaded files (temporary)
-uploads/
+data/uploads/
 
 # Reference poses (may contain user data)
-# Uncomment if you want to ignore reference poses:
 data/references/*.json
+data/references/images/
 
 # Git Secret files
 .gitsecret/keys/random_seed
