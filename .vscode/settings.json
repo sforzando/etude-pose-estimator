@@ -19,6 +19,7 @@
         "fastapi",
         "fseventsd",
         "genai",
+        "gitsecret",
         "htmlcov",
         "htmx",
         "httpx",

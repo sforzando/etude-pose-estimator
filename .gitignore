@@ -283,6 +283,23 @@ pyrightconfig.json
 
 
 # End of https://www.toptal.com/developers/gitignore/api/osx,windows,linux,python,visualstudiocode,data
+
+### Project Specific ###
+
+# Model files (large binary files)
+models/*.pt
+models/*.pth
+models/*.pth.tar
+models/MotionBERT/
+
+# Uploaded files (temporary)
+uploads/
+
+# Reference poses (may contain user data)
+# Uncomment if you want to ignore reference poses:
+data/references/*.json
+
+# Git Secret files
 .gitsecret/keys/random_seed
 !*.secret
 .envrc
