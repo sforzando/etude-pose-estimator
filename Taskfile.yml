@@ -1,0 +1,117 @@
+version: '3'
+
+vars:
+  PYTHON: python3
+  UV: uv
+  PYTHONPATH: "{{.PWD}}/src"
+  PORT: '{{.PORT | default "8888"}}'
+  HOST: '{{.HOST | default "0.0.0.0"}}'
+
+env:
+  PYTHONPATH: "{{.PYTHONPATH}}"
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  setup:
+    desc: Initial project setup (create directories)
+    cmds:
+      - mkdir -p src/etude_pose_estimator/{api,core,templates,static/{css,js},i18n}
+      - mkdir -p data/references
+      - mkdir -p models/motionbert
+      - mkdir -p tests/{api,core}
+      - mkdir -p scripts
+      - touch src/etude_pose_estimator/__init__.py
+      - touch src/etude_pose_estimator/api/__init__.py
+      - touch src/etude_pose_estimator/core/__init__.py
+      - touch tests/__init__.py
+      - echo "✅ Project directories created"
+
+  install:
+    desc: Install dependencies using uv
+    cmds:
+      - "{{.UV}} pip install -e .[dev]"
+      - echo "✅ Dependencies installed"
+
+  install:pip:
+    desc: Install dependencies using pip (fallback)
+    cmds:
+      - "{{.PYTHON}} -m pip install -e .[dev]"
+      - echo "✅ Dependencies installed"
+
+  dev:
+    desc: Run development server with auto-reload
+    cmds:
+      - "{{.UV}} run uvicorn etude_pose_estimator.main:app --reload --host {{.HOST}} --port {{.PORT}}"
+
+  lint:
+    desc: Run Ruff linter
+    cmds:
+      - "{{.UV}} run ruff check src tests"
+
+  format:
+    desc: Run Ruff formatter
+    cmds:
+      - "{{.UV}} run ruff format src tests"
+
+  lint-fix:
+    desc: Run Ruff linter with auto-fix
+    cmds:
+      - "{{.UV}} run ruff check --fix src tests"
+      - "{{.UV}} run ruff format src tests"
+
+  test:
+    desc: Run tests with coverage
+    cmds:
+      - "{{.UV}} run pytest"
+
+  test-cov:
+    desc: Generate coverage report (HTML)
+    cmds:
+      - "{{.UV}} run pytest --cov-report=html"
+      - echo "✅ Coverage report generated at htmlcov/index.html"
+
+  download-models:
+    desc: Download YOLO11x pose model
+    cmds:
+      - "{{.UV}} run python scripts/download_models.py"
+
+  setup-motionbert:
+    desc: Setup MotionBERT (manual step required)
+    cmds:
+      - bash scripts/setup_motionbert.sh
+
+  docker-build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t etude-pose-estimator:latest .
+
+  docker-run:
+    desc: Run Docker container
+    cmds:
+      - docker run --rm -p {{.PORT}}:{{.PORT}} --env-file .envrc etude-pose-estimator:latest
+
+  docker-run:gpu:
+    desc: Run Docker container with GPU support
+    cmds:
+      - docker run --rm --gpus all -p {{.PORT}}:{{.PORT}} --env-file .envrc etude-pose-estimator:latest
+
+  clean:
+    desc: Clean up generated files
+    cmds:
+      - rm -rf .pytest_cache
+      - rm -rf htmlcov
+      - rm -rf .coverage
+      - rm -rf .ruff_cache
+      - rm -rf uploads/*
+      - find . -type d -name __pycache__ -exec rm -rf {} +
+      - echo "✅ Cleanup complete"
+
+  clean:models:
+    desc: Clean up downloaded models (use with caution)
+    cmds:
+      - rm -rf models/*
+      - echo "⚠️  Models removed. Run 'task download-models' and 'task setup-motionbert' to restore"

@@ -283,3 +283,6 @@ pyrightconfig.json
 
 
 # End of https://www.toptal.com/developers/gitignore/api/osx,windows,linux,python,visualstudiocode,data
+.gitsecret/keys/random_seed
+!*.secret
+.envrc
