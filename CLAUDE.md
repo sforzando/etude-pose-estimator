@@ -135,3 +135,11 @@ etude-pose-estimator/
 
 1. <https://github.com/Walter0807/MotionBERT> からモデルコードを取得
 2. チェックポイントをダウンロード
+
+## Lefthookセットアップ
+
+コミット前に
+
+- git-secretによる暗号化
+- ruffによるフォーマットとリント
+- pytestを実行してカバレッジ計測
