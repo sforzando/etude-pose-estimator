@@ -112,33 +112,75 @@ class GeminiAdviceGenerator:
             key=lambda x: x[1],
             reverse=True,
         )
-        sorted_distances = sorted(
-            joint_distances.items(),
-            key=lambda x: x[1],
-            reverse=True,
-        )
 
         lang_instruction = "Respond in Japanese." if language == "ja" else "Respond in English."
 
+        # Map joint names from angle differences to more descriptive names
+        joint_names_ja = {
+            "Left Elbow": "左肘",
+            "Right Elbow": "右肘",
+            "Left Shoulder": "左肩",
+            "Right Shoulder": "右肩",
+            "Left Knee": "左膝",
+            "Right Knee": "右膝",
+            "Left Hip": "左股関節",
+            "Right Hip": "右股関節",
+        }
+
+        # Format top angles with Japanese names for better context
+        formatted_angles = []
+        for joint, angle in sorted_angles[:5]:
+            ja_name = joint_names_ja.get(joint, joint)
+            formatted_angles.append(f"- {ja_name} ({joint}): {angle:.1f}度のずれ")
+        angles_text = "\n".join(formatted_angles)
+
+        # Build clearer prompt with explicit formatting requirements
         prompt = f"""{lang_instruction}
 
-You are a professional pose coach for hero shows (like Ultraman).
+あなたはヒーローショー（ウルトラマンなど）の着ぐるみアクター向けのポーズコーチです。
+3D姿勢推定データに基づいて、決めポーズの品質を高めるための具体的で実用的なアドバイスを提供してください。
 
-Similarity Score: {similarity_score * 100:.1f}%
+【分析データ】
+- 類似度スコア: {similarity_score * 100:.1f}%
+- 関節角度のずれ（上位5つ）:
+{angles_text}
 
-Angle Differences (degrees):
-{self._format_dict(dict(sorted_angles[:5]))}
+【評価基準】
+- 角度のずれが5度未満: ほぼ完璧（優秀）
+- 角度のずれが5〜15度: 要改善
+- 角度のずれが15度以上: 要注意（大幅に修正が必要）
 
-Joint Position Differences:
-{self._format_dict(dict(sorted_distances[:5]))}
+【重要な指針】
+1. 観客から見た「見栄え」と「力強さ」を重視
+2. 着ぐるみの視界制限や可動域制限を考慮
+3. 左右対称性が求められるかどうかを見極める
+4. 具体的な改善方法を数値（角度）で示す
 
-Provide improvement advice in the following format:
+【出力フォーマット】
+以下の形式で、Markdownを使わずに平文で出力してください：
 
-1. Overall assessment (1-2 sentences about the pose quality)
-2. Top 3 specific improvements (ordered by priority, be specific about body parts and movements)
-3. Priority joints (which joints need the most attention)
+1. 総合評価
+[類似度スコアと全体的なポーズの完成度について1-2文で評価。励ましの言葉を含む]
 
-Keep the advice concise, actionable, and encouraging.
+2. 改善ポイント
+- [最も重要な改善点。「〜を〜度ほど〜」のように具体的に]
+- [2番目に重要な改善点]
+- [3番目に重要な改善点]
+
+3. 重点部位
+[最も注意すべき関節名を2-3個、カンマ区切りで]
+
+【例】
+1. 総合評価
+類似度85%と良好なポーズです。あと一歩で完璧な決めポーズになります！
+
+2. 改善ポイント
+- 左肘をあと12度ほど上げると、より力強く見栄えのある印象になります
+- 右膝の角度をあと8度ほど深くして、安定感のある着地姿勢を目指しましょう
+- 左肩をあと5度ほど後ろに引いて、胸を張った堂々とした姿勢に
+
+3. 重点部位
+左肘、右膝、左肩
 """
         return prompt
 
@@ -194,12 +236,25 @@ Keep the advice concise, actionable, and encouraging.
             elif current_section == "priority":
                 priority_joints += line + " "
 
+        # Provide Japanese fallback messages
+        default_overall = (
+            "ポーズの分析が完了しました。"
+            if language == "ja"
+            else "Pose analysis complete."
+        )
+        default_improvements = (
+            ["練習を続けて、フォームをさらに改善していきましょう。"]
+            if language == "ja"
+            else ["Continue practicing for better form."]
+        )
+        default_priority = (
+            "全体の姿勢に注目してください。" if language == "ja" else "Focus on overall posture."
+        )
+
         return {
-            "overall": overall.strip() or "Pose analysis complete.",
-            "improvements": improvements[:3]
-            if improvements
-            else ["Continue practicing for better form."],
-            "priority_joints": priority_joints.strip() or "Focus on overall posture.",
+            "overall": overall.strip() or default_overall,
+            "improvements": improvements[:3] if improvements else default_improvements,
+            "priority_joints": priority_joints.strip() or default_priority,
         }
 
     def generate_bilingual_advice(

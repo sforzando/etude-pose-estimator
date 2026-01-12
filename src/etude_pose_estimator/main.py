@@ -4,8 +4,6 @@ This module initializes the FastAPI application, sets up directories,
 configures static file serving, and includes API routers.
 """
 
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -14,31 +12,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from etude_pose_estimator.api import routes
-from etude_pose_estimator.config import settings
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan context manager.
-
-    Runs on startup and shutdown to manage resources.
-    """
-    # Startup: Create necessary directories
-    settings.upload_dir.mkdir(parents=True, exist_ok=True)
-    settings.reference_dir.mkdir(parents=True, exist_ok=True)
-
-    yield
-
-    # Shutdown: Cleanup (if needed)
-    # Currently no cleanup required
-
-
-# Create FastAPI application
+# Create FastAPI application with lifespan from routes
 app = FastAPI(
     title="etude-pose-estimator",
     description="Hero show pose quality management system (étude version)",
     version="0.1.0",
-    lifespan=lifespan,
+    lifespan=routes.lifespan,
 )
 
 # Setup templates

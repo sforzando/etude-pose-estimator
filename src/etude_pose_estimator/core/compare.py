@@ -9,6 +9,8 @@ from typing import Any
 import numpy as np
 from scipy.spatial import procrustes
 
+from etude_pose_estimator.core.joint_names import translate_joint_name
+
 
 class ProcrustesComparator:
     """Pose comparator using Procrustes analysis.
@@ -58,8 +60,12 @@ class ProcrustesComparator:
         )
 
         # Convert disparity to similarity score (1.0 = identical, 0.0 = very different)
-        # Disparity is typically in range [0, inf), we convert to [0, 1]
-        similarity_score = 1.0 / (1.0 + disparity)
+        # Using a linear scale with steeper penalty for differences
+        # disparity = 0 → score = 1.0 (100%)
+        # disparity = 0.1 → score = 0.7 (70%)
+        # disparity = 0.2 → score = 0.4 (40%)
+        # disparity >= 0.33 → score = 0 (0%)
+        similarity_score = max(0.0, 1.0 - disparity * 3.0)
 
         return similarity_score, standardized_pose1, standardized_pose2
 
@@ -96,9 +102,12 @@ class ProcrustesComparator:
 
         # Find joint with maximum distance
         max_distance_idx = np.argmax(joint_distances)
-        max_distance_joint = (
-            joint_names[max_distance_idx] if joint_names is not None else max_distance_idx
-        )
+        if joint_names is not None:
+            # Use provided joint names and translate to Japanese
+            max_distance_joint = translate_joint_name(joint_names[max_distance_idx])
+        else:
+            # Use index and translate to Japanese
+            max_distance_joint = translate_joint_name(max_distance_idx)
 
         # Compute disparity (for reference)
         disparity = 1.0 / similarity_score - 1.0 if similarity_score > 0 else float("inf")

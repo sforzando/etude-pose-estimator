@@ -1,245 +1,226 @@
 <!-- Comparison Result Display -->
 <div class="space-y-6 animate-fade-in">
-    <!-- Image Comparison -->
-    {% if reference_name or uploaded_image_url %}
-    <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-            <h3 class="card-title text-primary">
-                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                </svg>
-                画像比較
-            </h3>
+  <!-- Image Comparison -->
+  {% if reference_name or uploaded_image_url %}
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <div class="card-title text-primary text-lg font-bold">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+        </svg>
+        画像比較
+      </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                <!-- Reference Pose -->
-                {% if reference_name %}
-                <div>
-                    <h4 class="font-semibold text-center mb-2">基準ポーズ</h4>
-                    <div class="card bg-base-200">
-                        <figure class="px-6 pt-6">
-                            <img src="/api/references/{{ reference_name }}/image"
-                                 alt="{{ reference_name }}"
-                                 class="rounded-xl max-h-96 w-full object-contain"
-                                 onerror="this.parentElement.innerHTML='<div class=\'text-center p-8 text-base-content/50\'>画像なし</div>'" />
-                        </figure>
-                        <div class="card-body items-center text-center">
-                            <p class="text-sm font-medium">{{ reference_name }}</p>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Uploaded Image -->
-                {% if uploaded_image_url %}
-                <div>
-                    <h4 class="font-semibold text-center mb-2">解析画像</h4>
-                    <div class="card bg-base-200">
-                        <figure class="px-6 pt-6">
-                            <img src="{{ uploaded_image_url }}"
-                                 alt="解析画像"
-                                 class="rounded-xl max-h-96 w-full object-contain" />
-                        </figure>
-                        <div class="card-body items-center text-center">
-                            <p class="text-sm text-base-content/70">アップロードされた画像</p>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+        <!-- Reference Pose Skeleton -->
+        {% if reference_name %}
+        <div>
+          <p class="font-semibold text-center mb-2">基準ポーズ骨格</p>
+          <div class="card bg-base-200">
+            <figure class="px-6 pt-6">
+              <img src="/api/references/{{ reference_name }}/skeleton" alt="{{ reference_name }}"
+                class="rounded-xl max-h-96 w-full object-contain"
+                onerror="this.parentElement.innerHTML='<div class=\'text-center p-8 text-base-content/50\'>骨格図なし</div>'" />
+            </figure>
+            <div class="card-body items-center text-center">
+              <p class="text-sm font-medium">{{ reference_name }}</p>
             </div>
+          </div>
         </div>
-    </div>
-    {% endif %}
+        {% endif %}
 
-    <!-- Similarity Score Card -->
-    <div class="stats shadow w-full">
-        <div class="stat">
-            <div class="stat-figure text-primary">
-                <svg fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+        <!-- Uploaded Image Skeleton -->
+        {% if uploaded_skeleton_url %}
+        <div>
+          <p class="font-semibold text-center mb-2">解析画像骨格</p>
+          <div class="card bg-base-200">
+            <figure class="px-6 pt-6">
+              <img src="{{ uploaded_skeleton_url }}" alt="解析画像骨格" class="rounded-xl max-h-96 w-full object-contain" />
+            </figure>
+            <div class="card-body items-center text-center">
+              <p class="text-sm text-base-content/70">アップロードされた画像</p>
             </div>
-            <div class="stat-title">類似度スコア</div>
-            <div class="stat-value
-                {% if similarity_score >= 0.9 %}text-success
-                {% elif similarity_score >= 0.7 %}text-warning
+          </div>
+        </div>
+        {% elif uploaded_image_url %}
+        <!-- Fallback to original image if skeleton not available -->
+        <div>
+          <p class="font-semibold text-center mb-2">解析画像</p>
+          <div class="card bg-base-200">
+            <figure class="px-6 pt-6">
+              <img src="{{ uploaded_image_url }}" alt="解析画像" class="rounded-xl max-h-96 w-full object-contain" />
+            </figure>
+            <div class="card-body items-center text-center">
+              <p class="text-sm text-base-content/70">アップロードされた画像（骨格図生成失敗）</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Similarity Score Card -->
+  <div class="stats shadow w-full">
+    <div class="stat">
+      <div class="stat-figure text-primary">
+        <svg fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <div class="stat-title">類似度スコア</div>
+      <div class="stat-value
+                {% if similarity_score >= 0.85 %}text-success
+                {% elif similarity_score >= 0.60 %}text-warning
                 {% else %}text-error{% endif %}">
-                {{ "%.1f"|format(similarity_score * 100) }}%
-            </div>
-            <div class="stat-desc">
-                {% if similarity_score >= 0.9 %}
-                素晴らしい！ほぼ完璧です 🎉
-                {% elif similarity_score >= 0.7 %}
-                良好です。もう少し改善できます 💪
-                {% else %}
-                改善の余地があります。アドバイスを確認してください 📝
-                {% endif %}
-            </div>
-        </div>
+        {{ "%.1f"|format(similarity_score * 100) }}%
+      </div>
+      <div class="stat-desc">
+        {% if similarity_score >= 0.85 %}
+        素晴らしい！ほぼ完璧です 🎉
+        {% elif similarity_score >= 0.60 %}
+        良好です。もう少し改善できます 💪
+        {% else %}
+        改善の余地があります。アドバイスを確認してください 📝
+        {% endif %}
+      </div>
     </div>
+  </div>
 
-    <!-- Japanese Advice (Primary) -->
-    <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-            <h3 class="card-title text-primary">
-                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-                </svg>
-                改善アドバイス
-            </h3>
+  <!-- Angle Differences Table -->
+  {% if angle_differences %}
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <div class="card-title text-primary text-lg font-bold">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+        </svg>
+        関節角度の差分
+      </div>
 
-            <!-- Overall Assessment -->
-            <div class="prose max-w-none">
-                <h4 class="text-lg font-semibold mb-2">総合評価</h4>
-                <p class="text-base-content/80">{{ advice.ja.overall }}</p>
-            </div>
-
-            <!-- Improvements -->
-            {% if advice.ja.improvements %}
-            <div class="prose max-w-none mt-4">
-                <h4 class="text-lg font-semibold mb-2">改善ポイント（優先順）</h4>
-                <ol class="list-decimal list-inside space-y-2">
-                    {% for improvement in advice.ja.improvements %}
-                    <li class="text-base-content/80">{{ improvement }}</li>
-                    {% endfor %}
-                </ol>
-            </div>
-            {% endif %}
-
-            <!-- Priority Joints -->
-            {% if advice.ja.priority_joints %}
-            <div class="alert alert-info mt-4">
-                <svg fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span><strong>重点部位:</strong> {{ advice.ja.priority_joints }}</span>
-            </div>
-            {% endif %}
-        </div>
+      <div class="overflow-x-auto">
+        <table class="table table-zebra" aria-label="関節角度の差分一覧">
+          <caption class="sr-only">関節角度の差分一覧表</caption>
+          <thead>
+            <tr>
+              <th>関節名</th>
+              <th class="text-right">角度差（度）</th>
+              <th class="text-center">評価</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for joint_name, diff in angle_differences.items() %}
+            <tr>
+              <td class="font-medium">{{ joint_name }}</td>
+              <td class="text-right font-mono">{{ "%.1f°"|format(diff) }}</td>
+              <td class="text-center">
+                {% if diff < 5 %} <span class="badge badge-success">優秀</span>
+                  {% elif diff < 15 %} <span class="badge badge-warning">要改善</span>
+                    {% else %}
+                    <span class="badge badge-error">要注意</span>
+                    {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+  </div>
+  {% endif %}
 
-    <!-- Angle Differences Table -->
-    {% if angle_differences %}
-    <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-            <h3 class="card-title text-primary">
-                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
-                </svg>
-                関節角度の差分
-            </h3>
-
-            <div class="overflow-x-auto">
-                <table class="table table-zebra">
-                    <thead>
-                        <tr>
-                            <th>関節名</th>
-                            <th class="text-right">角度差（度）</th>
-                            <th class="text-center">評価</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for joint_name, diff in angle_differences.items() %}
-                        <tr>
-                            <td class="font-medium">{{ joint_name.replace('_', ' ').title() }}</td>
-                            <td class="text-right font-mono">{{ "%.1f°"|format(diff) }}</td>
-                            <td class="text-center">
-                                {% if diff < 5 %}
-                                <span class="badge badge-success">優秀</span>
-                                {% elif diff < 15 %}
-                                <span class="badge badge-warning">要改善</span>
-                                {% else %}
-                                <span class="badge badge-error">要注意</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+  <!-- Detailed Metrics (Expanded by default) -->
+  {% if comparison_metrics %}
+  <div class="collapse collapse-arrow bg-base-100 shadow-xl" role="region" aria-labelledby="detailed-metrics-title">
+    <input type="checkbox" checked aria-label="詳細メトリクスを開閉" />
+    <div class="collapse-title text-xl font-medium" id="detailed-metrics-title">
+      詳細メトリクス（上級者向け）
     </div>
-    {% endif %}
-
-    <!-- Detailed Metrics -->
-    {% if comparison_metrics %}
-    <div class="collapse collapse-arrow bg-base-100 shadow-xl">
-        <input type="checkbox" />
-        <div class="collapse-title text-xl font-medium">
-            詳細メトリクス（上級者向け）
+    <div class="collapse-content">
+      <div class="stats stats-vertical lg:stats-horizontal shadow w-full mt-4">
+        <div class="stat">
+          <div class="stat-title">平均距離</div>
+          <div class="stat-value text-sm">{{ "%.4f"|format(comparison_metrics.mean_distance) }}</div>
+          <div class="stat-desc">3D空間での平均ずれ</div>
         </div>
-        <div class="collapse-content">
-            <div class="stats stats-vertical lg:stats-horizontal shadow w-full mt-4">
-                <div class="stat">
-                    <div class="stat-title">平均距離</div>
-                    <div class="stat-value text-sm">{{ "%.4f"|format(comparison_metrics.mean_distance) }}</div>
-                    <div class="stat-desc">3D空間での平均ずれ</div>
-                </div>
 
-                <div class="stat">
-                    <div class="stat-title">最大距離</div>
-                    <div class="stat-value text-sm">{{ "%.4f"|format(comparison_metrics.max_distance) }}</div>
-                    <div class="stat-desc">最もずれている関節</div>
-                </div>
-
-                <div class="stat">
-                    <div class="stat-title">最大ずれ関節</div>
-                    <div class="stat-value text-sm">{{ comparison_metrics.max_distance_joint }}</div>
-                    <div class="stat-desc">番号: {{ comparison_metrics.max_distance_joint }}</div>
-                </div>
-            </div>
+        <div class="stat">
+          <div class="stat-title">最大距離</div>
+          <div class="stat-value text-sm">{{ "%.4f"|format(comparison_metrics.max_distance) }}</div>
+          <div class="stat-desc">最もずれている関節</div>
         </div>
+
+        <div class="stat">
+          <div class="stat-title">最大ずれ関節</div>
+          <div class="stat-value text-sm">{{ comparison_metrics.max_distance_joint }}</div>
+          <div class="stat-desc">最も改善が必要な部位</div>
+        </div>
+      </div>
     </div>
-    {% endif %}
+  </div>
+  {% endif %}
 
-    <!-- English Advice (Collapsible) -->
-    <div class="collapse collapse-arrow bg-base-100 shadow-xl">
-        <input type="checkbox" />
-        <div class="collapse-title text-xl font-medium">
-            English Advice
-        </div>
-        <div class="collapse-content">
-            <div class="prose max-w-none">
-                <h4 class="text-lg font-semibold mb-2">Overall Assessment</h4>
-                <p class="text-base-content/80">{{ advice.en.overall }}</p>
-            </div>
+  <!-- Japanese Advice (Primary) -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <div class="card-title text-primary text-lg font-bold">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+        </svg>
+        改善アドバイス
+      </div>
 
-            {% if advice.en.improvements %}
-            <div class="prose max-w-none mt-4">
-                <h4 class="text-lg font-semibold mb-2">Improvements (Priority Order)</h4>
-                <ol class="list-decimal list-inside space-y-2">
-                    {% for improvement in advice.en.improvements %}
-                    <li class="text-base-content/80">{{ improvement }}</li>
-                    {% endfor %}
-                </ol>
-            </div>
-            {% endif %}
+      <!-- Overall Assessment -->
+      <div class="prose max-w-none">
+        <p class="text-lg font-semibold mb-2">総合評価</p>
+        <p class="text-base-content/80">{{ advice.ja.overall }}</p>
+      </div>
 
-            {% if advice.en.priority_joints %}
-            <div class="alert alert-info mt-4">
-                <svg fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span><strong>Priority Joints:</strong> {{ advice.en.priority_joints }}</span>
-            </div>
-            {% endif %}
-        </div>
+      <!-- Improvements -->
+      {% if advice.ja.improvements %}
+      <div class="prose max-w-none mt-4">
+        <p class="text-lg font-semibold mb-2">改善ポイント（優先順）</p>
+        <ol class="list-decimal list-inside space-y-2">
+          {% for improvement in advice.ja.improvements %}
+          <li class="text-base-content/80">{{ improvement }}</li>
+          {% endfor %}
+        </ol>
+      </div>
+      {% endif %}
+
+      <!-- Priority Joints -->
+      {% if advice.ja.priority_joints %}
+      <div class="alert alert-info mt-4">
+        <svg fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span><strong>重点部位:</strong> {{ advice.ja.priority_joints }}</span>
+      </div>
+      {% endif %}
     </div>
+  </div>
 </div>
 
 <style>
-@keyframes fade-in {
+  @keyframes fade-in {
     from {
-        opacity: 0;
-        transform: translateY(10px);
+      opacity: 0;
+      transform: translateY(10px);
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
-.animate-fade-in {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
     animation: fade-in 0.3s ease-out;
-}
+  }
 </style>

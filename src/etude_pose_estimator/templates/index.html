@@ -15,11 +15,11 @@
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js" defer></script>
 </head>
 
-<body class="min-h-screen bg-base-200">
+<body class="min-h-screen bg-base-200 flex flex-col">
   <!-- Navbar -->
   <div class="navbar bg-base-100 shadow-lg">
     <div class="flex-1">
-      <a class="btn btn-ghost text-xl">🦸 pose-estimator</a>
+      <h1 class="text-xl font-bold px-4">🦸 pose-estimator</h1>
     </div>
   </div>
 
@@ -40,7 +40,7 @@
           d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
       <div>
-        <h3 class="font-bold">一部のコンポーネントが初期化されていません</h3>
+        <p class="font-bold">一部のコンポーネントが初期化されていません</p>
         <ul class="list-disc list-inside text-xs mt-2">
           {% for component, status in component_status.items() %}
           {% if status != "OK" %}
@@ -55,13 +55,14 @@
   {% endif %}
 
   <!-- Main Content -->
-  <div class="container mx-auto px-4 py-8">
+  <div class="container mx-auto px-4 py-8 flex-1">
     <div class="max-w-4xl mx-auto">
       <!-- Tabs -->
-      <div role="tablist" class="tabs tabs-lifted">
+      <div class="tabs tabs-lifted" role="tablist">
         <!-- Analyze Tab -->
-        <input type="radio" name="main_tabs" role="tab" class="tab" aria-label="ポーズ解析" checked />
-        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+        <input type="radio" name="main_tabs" class="tab" aria-label="ポーズ解析" checked id="tab-analyze" />
+        <div class="tab-content bg-base-100 border-base-300 rounded-box p-6" role="tabpanel"
+          aria-labelledby="tab-analyze">
           <h2 class="text-2xl font-bold mb-6">ポーズ解析・比較</h2>
 
           <form hx-post="/api/compare" hx-target="#result-container" hx-encoding="multipart/form-data"
@@ -76,13 +77,14 @@
                 </label>
                 <div class="join w-full">
                   <select name="reference_name" class="select select-bordered w-full join-item" required
-                    id="reference-select" onchange="showReferenceImage(this.value)">
+                    id="reference-select" onchange="showReferenceImage(this.value)" aria-label="基準ポーズ選択">
                     <option disabled selected value="">基準ポーズを選択してください</option>
                     {% for ref in references %}
                     <option value="{{ ref.name }}">{{ ref.name }}</option>
                     {% endfor %}
                   </select>
-                  <button type="button" class="btn btn-ghost join-item" onclick="resetReferenceSelection()">
+                  <button type="button" class="btn btn-ghost join-item" onclick="resetReferenceSelection()"
+                    aria-label="選択をリセット">
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -101,7 +103,9 @@
                   <!-- Original Image -->
                   <div class="card bg-base-100 shadow-xl">
                     <figure class="px-6 pt-6">
-                      <img id="reference-preview-img" alt="基準ポーズ" class="rounded-xl max-h-80 object-contain w-full" />
+                      <img id="reference-preview-img"
+                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="基準ポーズ"
+                        class="rounded-xl max-h-80 object-contain w-full" />
                     </figure>
                     <div class="card-body items-center text-center">
                       <p class="text-sm text-base-content/70">元画像</p>
@@ -112,7 +116,9 @@
                   <!-- Skeleton Visualization -->
                   <div class="card bg-base-100 shadow-xl">
                     <figure class="px-6 pt-6">
-                      <img id="reference-skeleton-img" alt="スケルトン" class="rounded-xl max-h-80 object-contain w-full" />
+                      <img id="reference-skeleton-img"
+                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="スケルトン"
+                        class="rounded-xl max-h-80 object-contain w-full" />
                     </figure>
                     <div class="card-body items-center text-center">
                       <p class="text-sm text-base-content/70">検出されたポーズ骨格</p>
@@ -140,7 +146,8 @@
               <div id="analyze-preview" class="hidden">
                 <div class="card bg-base-100 shadow-xl">
                   <figure class="px-10 pt-10">
-                    <img id="analyze-preview-img" alt="Preview" class="rounded-xl max-h-96 object-contain" />
+                    <img id="analyze-preview-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"
+                      alt="解析画像プレビュー" class="rounded-xl max-h-96 object-contain" />
                   </figure>
                   <div class="card-body items-center text-center">
                     <p class="text-sm text-base-content/70">アップロード予定の画像</p>
@@ -151,9 +158,9 @@
 
             <!-- Submit Button -->
             <div class="join w-full">
-              <button type="submit" class="btn btn-primary join-item flex-1">
-                <span class="loading loading-spinner loading-sm hidden htmx-indicator" id="loading-analyze"></span>
-                解析開始
+              <button type="submit" class="btn btn-primary join-item flex-1" id="analyze-submit-btn">
+                <span class="loading loading-spinner loading-md htmx-indicator" id="loading-analyze"></span>
+                <span id="analyze-btn-text">解析開始</span>
               </button>
               <button type="reset" class="btn btn-ghost join-item"
                 onclick="document.getElementById('result-container').innerHTML = ''">
@@ -169,8 +176,9 @@
         </div>
 
         <!-- Register Tab -->
-        <input type="radio" name="main_tabs" role="tab" class="tab" aria-label="基準ポーズ登録" />
-        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+        <input type="radio" name="main_tabs" class="tab" aria-label="基準ポーズ登録" id="tab-register" />
+        <div class="tab-content bg-base-100 border-base-300 rounded-box p-6" role="tabpanel"
+          aria-labelledby="tab-register">
           <h2 class="text-2xl font-bold mb-6">基準ポーズ登録</h2>
 
           <form hx-post="/api/reference" hx-target="#register-result-container" hx-encoding="multipart/form-data"
@@ -180,13 +188,6 @@
 
               <!-- Hidden name field for auto-numbering -->
               <input type="hidden" name="name" value="" />
-
-              <div class="alert alert-info">
-                <svg fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span>ポーズ名は自動採番されます（Pose-001, Pose-002...）</span>
-              </div>
 
               <!-- Image Upload -->
               <div class="form-control w-full">
@@ -205,7 +206,9 @@
               <div id="register-preview" class="hidden">
                 <div class="card bg-base-100 shadow-xl">
                   <figure class="px-10 pt-10">
-                    <img id="register-preview-img" alt="Preview" class="rounded-xl max-h-96 object-contain" />
+                    <img id="register-preview-img"
+                      src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="登録画像プレビュー"
+                      class="rounded-xl max-h-96 object-contain" />
                   </figure>
                   <div class="card-body items-center text-center">
                     <p class="text-sm text-base-content/70">登録予定の画像</p>
@@ -234,16 +237,10 @@
         </div>
 
         <!-- Manage Tab -->
-        <input type="radio" name="main_tabs" role="tab" class="tab" aria-label="基準ポーズ管理" />
-        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
-          <h2 class="text-2xl font-bold mb-6">基準ポーズ管理</h2>
-
-          <div class="alert alert-info mb-6">
-            <svg fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <span>登録済みの基準ポーズを確認・削除できます。</span>
-          </div>
+        <input type="radio" name="main_tabs" class="tab" aria-label="基準ポーズ一覧" id="tab-manage" />
+        <div class="tab-content bg-base-100 border-base-300 rounded-box p-6" role="tabpanel"
+          aria-labelledby="tab-manage">
+          <h2 class="text-2xl font-bold mb-6">基準ポーズ一覧</h2>
 
           <!-- Reference List -->
           <div id="reference-list-container" hx-get="/api/references" hx-trigger="load, referenceUpdated from:body"
@@ -324,11 +321,22 @@
       }
     }
 
-    // HTMX indicator display control
+    // HTMX indicator display control with button state management
     document.body.addEventListener('htmx:beforeRequest', (event) => {
       const indicator = document.getElementById(event.detail.elt.getAttribute('hx-indicator'));
       if (indicator) {
         indicator.classList.remove('hidden');
+
+        // Disable submit button and change text
+        if (indicator.id === 'loading-analyze') {
+          const btn = document.getElementById('analyze-submit-btn');
+          const btnText = document.getElementById('analyze-btn-text');
+          if (btn && btnText) {
+            btn.disabled = true;
+            btn.classList.add('btn-disabled');
+            btnText.textContent = '処理中...';
+          }
+        }
       }
     });
 
@@ -336,6 +344,17 @@
       const indicator = document.getElementById(event.detail.elt.getAttribute('hx-indicator'));
       if (indicator) {
         indicator.classList.add('hidden');
+
+        // Re-enable submit button and restore text
+        if (indicator.id === 'loading-analyze') {
+          const btn = document.getElementById('analyze-submit-btn');
+          const btnText = document.getElementById('analyze-btn-text');
+          if (btn && btnText) {
+            btn.disabled = false;
+            btn.classList.remove('btn-disabled');
+            btnText.textContent = '解析開始';
+          }
+        }
       }
     });
 

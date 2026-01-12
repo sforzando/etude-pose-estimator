@@ -6,6 +6,8 @@ intuitive for feedback than raw distance measurements.
 
 import numpy as np
 
+from etude_pose_estimator.core.joint_names import translate_joint_name
+
 
 class JointAngleCalculator:
     """Joint angle calculator for 3D poses.
@@ -123,7 +125,7 @@ class JointAngleCalculator:
             angles2: Second set of joint angles
 
         Returns:
-            Dictionary mapping joint names to absolute angle differences
+            Dictionary mapping Japanese joint names to absolute angle differences
 
         Raises:
             ValueError: If angle dictionaries have different keys
@@ -134,6 +136,8 @@ class JointAngleCalculator:
         differences = {}
         for joint_name in angles1:
             diff = abs(angles1[joint_name] - angles2[joint_name])
-            differences[joint_name] = diff
+            # Translate joint name to Japanese for UI display
+            ja_name = translate_joint_name(joint_name)
+            differences[ja_name] = diff
 
         return differences

@@ -2,7 +2,7 @@
 {% if references %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
   {% for ref in references %}
-  <div class="card bg-base-100 shadow-xl transition-all duration-300" data-pose-name="{{ ref.name }}" id="pose-{{ ref.name }}">
+  <div class="card bg-base-100 shadow-xl transition-all duration-300" data-pose-name="{{ ref.name }}" id="pose-{{ ref.name | replace(' ', '-') }}">
     <figure class="px-6 pt-6 cursor-pointer" onclick="showSkeletonModal('{{ ref.name }}')">
       {% if ref.skeleton_filename %}
       <img src="/api/references/{{ ref.name }}/skeleton" alt="{{ ref.name }}"
@@ -15,9 +15,9 @@
       {% endif %}
     </figure>
     <div class="card-body">
-      <h3 class="card-title text-base">
+      <div class="card-title text-base font-bold">
         {{ ref.name }}
-      </h3>
+      </div>
       <p class="text-sm text-base-content/70">
         登録日時: {{ ref.created_at[:10] }}
       </p>
@@ -49,14 +49,14 @@
 {% endif %}
 
 <!-- Skeleton Modal for enlarged view -->
-<dialog id="skeleton-modal" class="modal">
+<dialog id="skeleton-modal" class="modal" aria-labelledby="skeleton-modal-title">
   <div class="modal-box max-w-4xl">
     <form method="dialog">
-      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="閉じる">✕</button>
     </form>
-    <h3 class="font-bold text-lg mb-4" id="skeleton-modal-title">骨格図拡大表示</h3>
+    <p class="font-bold text-lg mb-4" id="skeleton-modal-title">骨格図拡大表示</p>
     <div class="flex justify-center">
-      <img id="skeleton-modal-img" alt="骨格図" class="max-h-[70vh] object-contain" />
+      <img id="skeleton-modal-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="骨格図拡大表示" class="max-h-[70vh] object-contain" />
     </div>
   </div>
   <form method="dialog" class="modal-backdrop">
