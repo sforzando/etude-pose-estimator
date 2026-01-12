@@ -1,5 +1,6 @@
 """Tests for advice generation module."""
 
+import json
 from unittest.mock import Mock, patch
 
 import pytest
@@ -80,78 +81,24 @@ class TestGeminiAdviceGenerator:
 
         assert "Respond in English" in prompt
 
-    def test_parse_response_extracts_sections(
-        self,
-        generator: GeminiAdviceGenerator,
-    ) -> None:
-        """Test that response parsing extracts all sections."""
-        response_text = """
-1. 総合評価
-類似度85%と良好なポーズです。あと一歩で完璧です。
-
-2. 改善ポイント
-- 左肘をあと12度ほど上げましょう
-- 右膝の角度を深くしてください
-- 左肩を後ろに引いてください
-
-3. 重点部位
-左肘、右膝、左肩
-"""
-        advice = generator._parse_response(response_text, language="ja")
-
-        assert "overall" in advice
-        assert "improvements" in advice
-        assert "priority_joints" in advice
-        assert "類似度85%" in advice["overall"]
-        assert len(advice["improvements"]) == 3
-        assert "左肘" in advice["priority_joints"]
-
-    def test_parse_response_fallback_messages_japanese(
-        self,
-        generator: GeminiAdviceGenerator,
-    ) -> None:
-        """Test that Japanese fallback messages are used when parsing fails."""
-        response_text = ""  # Empty response
-
-        advice = generator._parse_response(response_text, language="ja")
-
-        assert "ポーズの分析が完了しました" in advice["overall"]
-        assert "練習を続けて" in advice["improvements"][0]
-        assert "全体の姿勢" in advice["priority_joints"]
-
-    def test_parse_response_fallback_messages_english(
-        self,
-        generator: GeminiAdviceGenerator,
-    ) -> None:
-        """Test that English fallback messages are used when parsing fails."""
-        response_text = ""  # Empty response
-
-        advice = generator._parse_response(response_text, language="en")
-
-        assert "Pose analysis complete" in advice["overall"]
-        assert "Continue practicing" in advice["improvements"][0]
-        assert "Focus on overall posture" in advice["priority_joints"]
-
     @patch("etude_pose_estimator.core.advice.genai.Client")
     def test_generate_advice_calls_api(
         self,
         mock_client_class: Mock,
         generator: GeminiAdviceGenerator,
     ) -> None:
-        """Test that generate_advice calls Gemini API."""
-        # Setup mock
+        """Test that generate_advice calls Gemini API with structured output."""
+        # Setup mock with JSON response
         mock_response = Mock()
-        mock_response.text = """
-1. 総合評価
-良好です。
-
-2. 改善ポイント
-- テスト改善1
-- テスト改善2
-
-3. 重点部位
-テスト部位
-"""
+        mock_response.text = json.dumps({
+            "overall": "類似度85.0%と良好なポーズです。あと一歩で完璧です。",
+            "improvements": [
+                "左肘は測定値で10.0度のずれがあり、もう少し高く上げると力強さが増します",
+                "右膝の角度を少し深くして、安定感のある姿勢を目指しましょう",
+                "左肩を後ろに引いて、胸を張った堂々とした姿勢にしましょう",
+            ],
+            "priority_joints": "左肘、右膝、左肩",
+        })
         mock_client = Mock()
         mock_client.models.generate_content.return_value = mock_response
         generator.client = mock_client
@@ -168,6 +115,10 @@ class TestGeminiAdviceGenerator:
         mock_client.models.generate_content.assert_called_once()
         assert "overall" in advice
         assert "improvements" in advice
+        assert "priority_joints" in advice
+        assert "類似度85.0%" in advice["overall"]
+        assert len(advice["improvements"]) == 3
+        assert "左肘" in advice["priority_joints"]
 
     def test_generate_advice_unsupported_language_raises_error(
         self,

@@ -8,6 +8,23 @@ from typing import Any
 
 from google import genai
 from google.genai.types import GenerateContentConfig
+from pydantic import BaseModel, Field
+
+
+class AdviceResponse(BaseModel):
+    """Structured response model for pose improvement advice."""
+
+    overall: str = Field(
+        description="Overall assessment of the pose (1-2 sentences)",
+    )
+    improvements: list[str] = Field(
+        description="List of 3 specific improvement points with measured angle data",
+        min_length=1,
+        max_length=3,
+    )
+    priority_joints: str = Field(
+        description="2-3 joint names that need most attention, comma-separated",
+    )
 
 
 class GeminiAdviceGenerator:
@@ -79,11 +96,19 @@ class GeminiAdviceGenerator:
                 config=GenerateContentConfig(
                     temperature=0.7,
                     max_output_tokens=1024,
+                    response_mime_type="application/json",
+                    response_schema=AdviceResponse,
                 ),
             )
 
-            advice = self._parse_response(response.text, language)
-            return advice
+            # Parse JSON response into Pydantic model
+            advice_model = AdviceResponse.model_validate_json(response.text)
+
+            return {
+                "overall": advice_model.overall,
+                "improvements": advice_model.improvements,
+                "priority_joints": advice_model.priority_joints,
+            }
 
         except Exception as e:
             raise RuntimeError(f"Failed to generate advice: {e}") from e
@@ -134,53 +159,34 @@ class GeminiAdviceGenerator:
             formatted_angles.append(f"- {ja_name} ({joint}): {angle:.1f}度のずれ")
         angles_text = "\n".join(formatted_angles)
 
-        # Build clearer prompt with explicit formatting requirements
+        # Build data-driven prompt for structured JSON output
         prompt = f"""{lang_instruction}
 
-あなたはヒーローショー（ウルトラマンなど）の着ぐるみアクター向けのポーズコーチです。
-3D姿勢推定データに基づいて、決めポーズの品質を高めるための具体的で実用的なアドバイスを提供してください。
+あなたはヒーローショーのアクター向けポーズコーチです。
+3D姿勢推定で測定された関節角度データに基づき、基準ポーズと比較した具体的な改善アドバイスを提供してください。
 
-【分析データ】
-- 類似度スコア: {similarity_score * 100:.1f}%
-- 関節角度のずれ（上位5つ）:
+【測定データ】
+類似度スコア: {similarity_score * 100:.1f}%
+
+関節角度のずれ（測定値）:
 {angles_text}
 
-【評価基準】
-- 角度のずれが5度未満: ほぼ完璧（優秀）
-- 角度のずれが5〜15度: 要改善
-- 角度のずれが15度以上: 要注意（大幅に修正が必要）
+【必須ルール】
+1. 改善ポイント(improvements)では、上記の測定データから実際の角度差分を**必ず引用**すること
+2. 「〜度ほど」ではなく、「測定値では○○度のずれ」のように具体的に記載
+3. ずれが大きい順（15度以上→5〜15度→5度未満）に優先順位をつける
+4. 各改善ポイントは簡潔な1文で完結させること
 
-【重要な指針】
-1. 観客から見た「見栄え」と「力強さ」を重視
-2. 着ぐるみの視界制限や可動域制限を考慮
-3. 左右対称性が求められるかどうかを見極める
-4. 具体的な改善方法を数値（角度）で示す
+【レスポンススキーマ】
+- overall: 類似度{similarity_score * 100:.1f}%を踏まえた1-2文の総合評価
+- improvements: 測定データに基づく具体的な改善点3つ（配列）
+- priority_joints: ずれが大きい関節名を2-3個、カンマ区切り（文字列）
 
-【出力フォーマット】
-以下の形式で、Markdownを使わずに平文で出力してください：
+【良い改善ポイントの例】
+"左肩は測定値で18.5度のずれがあり、後方に引いて胸を張った姿勢にすると力強さが増します"
 
-1. 総合評価
-[類似度スコアと全体的なポーズの完成度について1-2文で評価。励ましの言葉を含む]
-
-2. 改善ポイント
-- [最も重要な改善点。「〜を〜度ほど〜」のように具体的に]
-- [2番目に重要な改善点]
-- [3番目に重要な改善点]
-
-3. 重点部位
-[最も注意すべき関節名を2-3個、カンマ区切りで]
-
-【例】
-1. 総合評価
-類似度85%と良好なポーズです。あと一歩で完璧な決めポーズになります！
-
-2. 改善ポイント
-- 左肘をあと12度ほど上げると、より力強く見栄えのある印象になります
-- 右膝の角度をあと8度ほど深くして、安定感のある着地姿勢を目指しましょう
-- 左肩をあと5度ほど後ろに引いて、胸を張った堂々とした姿勢に
-
-3. 重点部位
-左肘、右膝、左肩
+【悪い改善ポイントの例】
+"左肩をもっと開いて胸を張りましょう"（測定値なし、曖昧）
 """
         return prompt
 
@@ -194,68 +200,6 @@ class GeminiAdviceGenerator:
             Formatted string
         """
         return "\n".join([f"- {k}: {v:.2f}" for k, v in data.items()])
-
-    def _parse_response(self, response_text: str, language: str) -> dict[str, Any]:
-        """Parse Gemini response into structured advice.
-
-        Args:
-            response_text: Raw response from Gemini
-            language: Language of the response
-
-        Returns:
-            Parsed advice dictionary
-        """
-        # Simple parsing - split by numbered sections
-        lines = response_text.strip().split("\n")
-
-        overall = ""
-        improvements = []
-        priority_joints = ""
-
-        current_section = None
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-
-            if "1." in line or "overall" in line.lower() or "総合" in line:
-                current_section = "overall"
-                # Extract content after the marker
-                content = line.split(".", 1)[-1].strip()
-                if content:
-                    overall += content + " "
-            elif "2." in line or "improvement" in line.lower() or "改善" in line:
-                current_section = "improvements"
-            elif "3." in line or "priority" in line.lower() or "優先" in line:
-                current_section = "priority"
-            elif current_section == "overall":
-                overall += line + " "
-            elif current_section == "improvements":
-                if line.startswith("-") or line.startswith("*") or line[0].isdigit():
-                    improvements.append(line.lstrip("-*0123456789. "))
-            elif current_section == "priority":
-                priority_joints += line + " "
-
-        # Provide Japanese fallback messages
-        default_overall = (
-            "ポーズの分析が完了しました。"
-            if language == "ja"
-            else "Pose analysis complete."
-        )
-        default_improvements = (
-            ["練習を続けて、フォームをさらに改善していきましょう。"]
-            if language == "ja"
-            else ["Continue practicing for better form."]
-        )
-        default_priority = (
-            "全体の姿勢に注目してください。" if language == "ja" else "Focus on overall posture."
-        )
-
-        return {
-            "overall": overall.strip() or default_overall,
-            "improvements": improvements[:3] if improvements else default_improvements,
-            "priority_joints": priority_joints.strip() or default_priority,
-        }
 
     def generate_bilingual_advice(
         self,
