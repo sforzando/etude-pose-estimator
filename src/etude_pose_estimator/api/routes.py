@@ -485,6 +485,8 @@ async def compare_pose(
                     "max_distance_joint": metrics["max_distance_joint"],
                 },
                 "advice": advice,
+                "uploaded_pose_3d": pose_3d.tolist(),
+                "reference_pose_3d": reference_pose_3d.tolist(),
             },
         )
 

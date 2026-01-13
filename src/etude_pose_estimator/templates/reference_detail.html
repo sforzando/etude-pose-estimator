@@ -28,7 +28,7 @@
 
   <!-- Main Content -->
   <div class="container mx-auto px-4 py-8 flex-1">
-    <div class="max-w-6xl mx-auto">
+    <div class="max-w-7xl mx-auto">
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-3xl font-bold mb-2">{{ name }}</h1>
@@ -199,12 +199,14 @@
   </footer>
 
   <script>
-    // 3D pose data from server (H36M format: 17 joints)
-    const pose3d_raw = {{ pose_3d | tojson }};
+    // Wait for Plotly to be loaded, then render 3D plot
+    (function() {
+      // 3D pose data from server (H36M format: 17 joints)
+      const pose3d_raw = {{ pose_3d | tojson }};
 
-    // Convert coordinates for proper 3D visualization
-    // MotionBERT convention: rotate to make Y-axis upward
-    const pose3d = pose3d_raw.map(p => [-p[0], -p[2], -p[1]]);
+      // Convert coordinates for proper 3D visualization
+      // MotionBERT convention: rotate to make Y-axis upward
+      const pose3d = pose3d_raw.map(p => [-p[0], -p[2], -p[1]]);
 
     // H36M skeleton connections (MotionBERT official)
     // Format: [[start_joint, end_joint], side]
@@ -331,18 +333,24 @@
 
     traces.push(joint_trace);
 
+    // Calculate dynamic range for proper centering
+    const all_coords = pose3d.flat();
+    const max_coord = Math.max(...all_coords.map(Math.abs));
+    const plot_range = Math.max(max_coord * 1.2, 1.5);  // At least 1.5, but expand if needed
+
     // Layout (MotionBERT style camera view)
     const layout = {
       autosize: true,
       scene: {
-        aspectmode: 'data',
+        aspectmode: 'cube',
         xaxis: {
           title: { text: 'X', font: { color: 'white', size: 14 } },
           tickfont: { color: 'white', size: 12 },
           backgroundcolor: 'rgb(30, 30, 50)',
           gridcolor: 'rgb(80, 80, 100)',
           showbackground: true,
-          zeroline: false
+          zeroline: true,
+          range: [-plot_range, plot_range],
         },
         yaxis: {
           title: { text: 'Y (上下)', font: { color: 'white', size: 14 } },
@@ -350,7 +358,8 @@
           backgroundcolor: 'rgb(30, 30, 50)',
           gridcolor: 'rgb(80, 80, 100)',
           showbackground: true,
-          zeroline: false
+          zeroline: true,
+          range: [-plot_range, plot_range],
         },
         zaxis: {
           title: { text: 'Z (深度)', font: { color: 'white', size: 14 } },
@@ -358,10 +367,11 @@
           backgroundcolor: 'rgb(30, 30, 50)',
           gridcolor: 'rgb(80, 80, 100)',
           showbackground: true,
-          zeroline: false
+          zeroline: true,
+          range: [-plot_range, plot_range],
         },
         camera: {
-          eye: { x: 1.8, y: 1.8, z: 1.2 },
+          eye: { x: 1.5, y: 1.5, z: 1.5 },
           center: { x: 0, y: 0, z: 0 }
         }
       },
@@ -376,15 +386,28 @@
       }
     };
 
-    const config = {
-      responsive: true,
-      displayModeBar: true,
-      displaylogo: false,
-      modeBarButtonsToRemove: ['toImage', 'sendDataToCloud']
-    };
+      const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['toImage', 'sendDataToCloud']
+      };
 
-    // Render the plot
-    Plotly.newPlot('pose-3d-plot', traces, layout, config);
+      // Wait for Plotly to be loaded, then render the plot
+      function renderPlot() {
+        if (typeof Plotly === 'undefined') {
+          // Plotly not loaded yet, wait a bit
+          setTimeout(renderPlot, 100);
+          return;
+        }
+
+        // Render the plot
+        Plotly.newPlot('pose-3d-plot', traces, layout, config);
+      }
+
+      // Start rendering
+      renderPlot();
+    })();
 
     // Tab switching function
     function showTab(event, tabName) {
