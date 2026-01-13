@@ -12,7 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>
 
   <!-- Plotly.js for 3D visualization -->
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" defer></script>
+  <script src="https://cdn.plot.ly/plotly-3.3.0.min.js" defer></script>
 </head>
 
 <body class="min-h-screen bg-base-200 flex flex-col">
@@ -92,7 +92,7 @@
         <div class="card-body">
           <h2 class="card-title">関節角度 (度)</h2>
           <div class="overflow-x-auto">
-            <table class="table table-zebra">
+            <table class="table table-zebra" aria-label="関節角度データ">
               <thead>
                 <tr>
                   <th>関節</th>
@@ -120,7 +120,7 @@
             2D画像から推定された3次元座標です。カメラ角度の違いを吸収するために使用されます。
           </p>
           <div class="overflow-x-auto">
-            <table class="table table-zebra table-sm">
+            <table class="table table-zebra table-sm" aria-label="3D座標データ">
               <thead>
                 <tr>
                   <th>#</th>
@@ -154,7 +154,7 @@
             画像から直接検出された2次元座標です。
           </p>
           <div class="overflow-x-auto">
-            <table class="table table-zebra table-sm">
+            <table class="table table-zebra table-sm" aria-label="2D座標データ">
               <thead>
                 <tr>
                   <th>#</th>

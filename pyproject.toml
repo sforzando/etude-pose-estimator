@@ -17,25 +17,25 @@ classifiers = [
 ]
 
 dependencies = [
-    # FastAPI and server
-    "fastapi>=0.128.0,<0.129.0",
-    "uvicorn[standard]>=0.40.0,<0.41.0",
+    # FastAPI and server (allow minor updates)
+    "fastapi>=0.128.0,<0.130.0",
+    "uvicorn[standard]>=0.40.0,<0.42.0",
     "jinja2>=3.1.6,<3.2.0",
     "python-multipart>=0.0.21,<0.1.0",
     "pydantic-settings>=2.12.0,<2.13.0",
 
-    # Machine Learning - YOLO11x
+    # Machine Learning - YOLO11x (keep conservative constraints)
     "ultralytics>=8.3.246,<8.4.0",
     "torch>=2.9.1,<2.10.0",
     "torchvision>=0.24.1,<0.25.0",
+    "numpy>=2.2.0,<2.3.0",  # Used by ML libs, keep conservative
 
-    # Pose processing
-    "scipy>=1.16.3,<1.17.0",
+    # Pose processing (allow minor updates)
+    "scipy>=1.17.0,<1.18.0",
     "opencv-python>=4.12.0,<4.13.0",
-    "numpy>=2.2.0,<2.3.0",
 
-    # AI - Gemini 3 Flash
-    "google-genai>=1.57.0,<1.58.0",
+    # AI - Gemini 3 Flash (allow minor updates)
+    "google-genai>=1.57.0,<1.59.0",
 ]
 
 [project.optional-dependencies]
