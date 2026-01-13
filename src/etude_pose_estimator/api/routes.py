@@ -173,6 +173,44 @@ async def index(request: Request) -> HTMLResponse:
     )
 
 
+@page_router.get("/references/{name}.html", response_class=HTMLResponse)
+async def reference_detail(request: Request, name: str) -> HTMLResponse:
+    """Render reference pose detail page.
+
+    Args:
+        request: FastAPI request object
+        name: Reference pose name
+
+    Returns:
+        Rendered HTML detail page
+
+    Raises:
+        HTTPException: If reference not found
+    """
+    if request.app.state.reference_manager is None:
+        raise HTTPException(status_code=503, detail="Reference manager not initialized")
+
+    try:
+        pose_data = request.app.state.reference_manager.load(name)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Reference pose '{name}' not found")
+
+    # Convert NumPy arrays to lists for template rendering
+    pose_2d_list = pose_data["pose_2d"].tolist()
+    pose_3d_list = pose_data["pose_3d"].tolist()
+
+    return templates.TemplateResponse(
+        "reference_detail.html",
+        {
+            "request": request,
+            "name": name,
+            "pose_data": pose_data,
+            "pose_2d": pose_2d_list,
+            "pose_3d": pose_3d_list,
+        },
+    )
+
+
 @router.post("/detect")
 async def detect_pose(
     request: Request,
@@ -791,3 +829,32 @@ async def delete_reference(request: Request, name: str) -> Response:
             status_code=404,
             detail=f"Reference pose '{name}' not found",
         )
+
+
+@router.delete("/references", response_model=None)
+async def delete_all_references(request: Request) -> JSONResponse:
+    """Delete all reference poses.
+
+    Args:
+        request: FastAPI request object
+
+    Returns:
+        JSON response with deletion count
+
+    Raises:
+        HTTPException: If reference manager not initialized
+    """
+    if request.app.state.reference_manager is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Reference manager not initialized",
+        )
+
+    count = request.app.state.reference_manager.delete_all()
+
+    return JSONResponse(
+        content={
+            "message": f"Successfully deleted {count} reference pose(s)",
+            "count": count,
+        }
+    )

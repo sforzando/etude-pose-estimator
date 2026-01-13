@@ -4,11 +4,14 @@ This module provides advice generation functionality using Google's Gemini 3 Fla
 offering context-aware, bilingual (Japanese/English) improvement suggestions.
 """
 
+import logging
 from typing import Any
 
 from google import genai
 from google.genai.types import GenerateContentConfig
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class AdviceResponse(BaseModel):
@@ -95,11 +98,14 @@ class GeminiAdviceGenerator:
                 contents=prompt,
                 config=GenerateContentConfig(
                     temperature=0.7,
-                    max_output_tokens=1024,
+                    max_output_tokens=2048,
                     response_mime_type="application/json",
                     response_schema=AdviceResponse,
                 ),
             )
+
+            logger.info(f"Gemini response received (length: {len(response.text)} chars)")
+            logger.debug(f"Gemini response text: {response.text[:500]}...")
 
             # Parse JSON response into Pydantic model
             advice_model = AdviceResponse.model_validate_json(response.text)
@@ -111,6 +117,8 @@ class GeminiAdviceGenerator:
             }
 
         except Exception as e:
+            logger.error(f"Failed to generate advice: {e}")
+            logger.error(f"Response text (first 1000 chars): {response.text[:1000] if 'response' in locals() else 'N/A'}")
             raise RuntimeError(f"Failed to generate advice: {e}") from e
 
     def _build_prompt(

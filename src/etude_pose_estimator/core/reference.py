@@ -247,6 +247,25 @@ class ReferencePoseManager:
         """
         return self._get_file_path(name).exists()
 
+    def delete_all(self) -> int:
+        """Delete all reference poses.
+
+        Returns:
+            Number of reference poses deleted
+        """
+        count = 0
+        references = self.list_references()
+
+        for ref in references:
+            try:
+                self.delete(ref["name"])
+                count += 1
+            except Exception:
+                # Continue deleting other references even if one fails
+                continue
+
+        return count
+
     def generate_next_pose_name(self) -> str:
         """Generate next available pose name with auto-numbering.
 

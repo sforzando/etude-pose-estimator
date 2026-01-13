@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dim">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ name }} - 基準ポーズ詳細 | pose-estimator</title>
+
+  <!-- Tailwind CSS + daisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>
+
+  <!-- Plotly.js for 3D visualization -->
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" defer></script>
+</head>
+
+<body class="min-h-screen bg-base-200 flex flex-col">
+  <!-- Navbar -->
+  <div class="navbar bg-base-100 shadow-lg">
+    <div class="flex-1">
+      <a href="/" class="btn btn-ghost text-xl">🦸 pose-estimator</a>
+    </div>
+    <div class="flex-none">
+      <a href="/" class="btn btn-ghost btn-sm">← 戻る</a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container mx-auto px-4 py-8 flex-1">
+    <div class="max-w-6xl mx-auto">
+      <!-- Header -->
+      <div class="mb-6">
+        <h1 class="text-3xl font-bold mb-2">{{ name }}</h1>
+        <p class="text-base-content/70">
+          登録日時: {{ pose_data.created_at }}
+        </p>
+      </div>
+
+      <!-- 3D Visualization (MotionBERT Style) -->
+      <div class="card bg-base-100 shadow-xl mb-8">
+        <div class="card-body">
+          <h2 class="card-title">3Dポーズ可視化 (MotionBERT推定)</h2>
+          <p class="text-sm text-base-content/70 mb-4">
+            <svg class="inline w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            マウスドラッグで回転・ズーム可能。カメラ角度の影響を吸収した3次元骨格を表示しています。
+          </p>
+          <div id="pose-3d-plot" class="w-full rounded-lg overflow-hidden" style="height: 600px; max-width: 100%;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Images -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Original Image -->
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title">元画像</h2>
+            <figure>
+              <img src="/api/references/{{ name }}/image" alt="{{ name }}"
+                class="rounded-lg max-h-96 object-contain w-full"
+                onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 300%22%3E%3Crect fill=%22%23333%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2220%22%3E画像なし%3C/text%3E%3C/svg%3E'" />
+            </figure>
+          </div>
+        </div>
+
+        <!-- Skeleton Image -->
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <h2 class="card-title">2D骨格検出 (YOLO11x)</h2>
+            <figure>
+              <img src="/api/references/{{ name }}/skeleton" alt="{{ name }} 骨格"
+                class="rounded-lg max-h-96 object-contain w-full"
+                onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 300%22%3E%3Crect fill=%22%23333%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2220%22%3E骨格画像なし%3C/text%3E%3C/svg%3E'" />
+            </figure>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs for data views -->
+      <div class="tabs tabs-boxed mb-4" role="tablist">
+        <a class="tab tab-active" role="tab" onclick="showTab(event, 'angles')">関節角度</a>
+        <a class="tab" role="tab" onclick="showTab(event, 'coords-3d')">3D座標データ</a>
+        <a class="tab" role="tab" onclick="showTab(event, 'coords-2d')">2D座標データ</a>
+      </div>
+
+      <!-- Joint Angles -->
+      <div id="tab-angles" class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+          <h2 class="card-title">関節角度 (度)</h2>
+          <div class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead>
+                <tr>
+                  <th>関節</th>
+                  <th>角度</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for joint_name, angle in pose_data.angles.items() %}
+                <tr>
+                  <td class="font-medium">{{ joint_name }}</td>
+                  <td>{{ "%.1f"|format(angle) }}°</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D Coordinates -->
+      <div id="tab-coords-3d" class="card bg-base-100 shadow-xl mb-6 hidden">
+        <div class="card-body">
+          <h2 class="card-title">3D座標 (MotionBERT推定)</h2>
+          <p class="text-sm text-base-content/70 mb-4">
+            2D画像から推定された3次元座標です。カメラ角度の違いを吸収するために使用されます。
+          </p>
+          <div class="overflow-x-auto">
+            <table class="table table-zebra table-sm">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>関節名</th>
+                  <th>X</th>
+                  <th>Y</th>
+                  <th>Z (深度)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for i in range(pose_3d|length) %}
+                <tr>
+                  <td>{{ i }}</td>
+                  <td class="font-medium">関節{{ i }}</td>
+                  <td>{{ "%.4f"|format(pose_3d[i][0]) }}</td>
+                  <td>{{ "%.4f"|format(pose_3d[i][1]) }}</td>
+                  <td class="text-primary font-semibold">{{ "%.4f"|format(pose_3d[i][2]) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2D Coordinates -->
+      <div id="tab-coords-2d" class="card bg-base-100 shadow-xl mb-6 hidden">
+        <div class="card-body">
+          <h2 class="card-title">2D座標 (YOLO11x検出)</h2>
+          <p class="text-sm text-base-content/70 mb-4">
+            画像から直接検出された2次元座標です。
+          </p>
+          <div class="overflow-x-auto">
+            <table class="table table-zebra table-sm">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>関節名</th>
+                  <th>X (px)</th>
+                  <th>Y (px)</th>
+                  <th>信頼度</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for i in range(pose_2d|length) %}
+                <tr>
+                  <td>{{ i }}</td>
+                  <td class="font-medium">関節{{ i }}</td>
+                  <td>{{ "%.2f"|format(pose_2d[i][0]) }}</td>
+                  <td>{{ "%.2f"|format(pose_2d[i][1]) }}</td>
+                  <td>
+                    {% if pose_2d[i]|length > 2 %}
+                    <div
+                      class="badge badge-sm {% if pose_2d[i][2] > 0.8 %}badge-success{% elif pose_2d[i][2] > 0.5 %}badge-warning{% else %}badge-error{% endif %}">
+                      {{ "%.2f"|format(pose_2d[i][2]) }}
+                    </div>
+                    {% else %}
+                    N/A
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer footer-center p-4 bg-base-300 text-base-content mt-8">
+    <aside>
+      <p>etude-pose-estimator v0.1.0 - Hero Pose Quality Management System</p>
+    </aside>
+  </footer>
+
+  <script>
+    // 3D pose data from server (H36M format: 17 joints)
+    const pose3d_raw = {{ pose_3d | tojson }};
+
+    // Convert coordinates for proper 3D visualization
+    // MotionBERT convention: rotate to make Y-axis upward
+    const pose3d = pose3d_raw.map(p => [-p[0], -p[2], -p[1]]);
+
+    // H36M skeleton connections (MotionBERT official)
+    // Format: [[start_joint, end_joint], side]
+    // side: 'L' = left (red), 'R' = right (blue), 'M' = middle (gray)
+    const skeleton_connections = [
+      // Right leg (blue)
+      [[0, 1], 'R'],  // pelvis -> right_hip
+      [[1, 2], 'R'],  // right_hip -> right_knee
+      [[2, 3], 'R'],  // right_knee -> right_ankle
+
+      // Left leg (red)
+      [[0, 4], 'L'],  // pelvis -> left_hip
+      [[4, 5], 'L'],  // left_hip -> left_knee
+      [[5, 6], 'L'],  // left_knee -> left_ankle
+
+      // Spine and head (middle - gray)
+      [[0, 7], 'M'],  // pelvis -> torso
+      [[7, 8], 'M'],  // torso -> neck
+      [[8, 9], 'M'],  // neck -> nose
+      [[9, 10], 'M'], // nose -> head
+
+      // Shoulders (middle - gray)
+      [[8, 11], 'M'], // neck -> left_shoulder (branch)
+      [[8, 14], 'M'], // neck -> right_shoulder (branch)
+
+      // Left arm (red)
+      [[11, 12], 'L'], // left_shoulder -> left_elbow
+      [[12, 13], 'L'], // left_elbow -> left_wrist
+
+      // Right arm (blue)
+      [[14, 15], 'R'], // right_shoulder -> right_elbow
+      [[15, 16], 'R'], // right_elbow -> right_wrist
+    ];
+
+    // Color scheme (MotionBERT style)
+    const colors = {
+      'L': 'rgb(255, 50, 50)',   // Left - Red
+      'R': 'rgb(50, 50, 255)',   // Right - Blue
+      'M': 'rgb(100, 100, 100)'  // Middle - Gray
+    };
+
+    // Extract coordinates
+    const x_coords = pose3d.map(p => p[0]);
+    const y_coords = pose3d.map(p => p[1]);
+    const z_coords = pose3d.map(p => p[2]);
+
+    // Create traces for each connection type
+    const traces = [];
+
+    // Group connections by side for color coding
+    ['L', 'R', 'M'].forEach(side => {
+      const connections_side = skeleton_connections.filter(([_, s]) => s === side);
+
+      const line_trace = {
+        x: [],
+        y: [],
+        z: [],
+        mode: 'lines',
+        type: 'scatter3d',
+        line: {
+          color: colors[side],
+          width: 6
+        },
+        hoverinfo: 'skip',
+        showlegend: true,
+        name: side === 'L' ? '左側' : (side === 'R' ? '右側' : '中心')
+      };
+
+      // Add all connections for this side
+      connections_side.forEach(([[start, end], _]) => {
+        line_trace.x.push(x_coords[start], x_coords[end], null);
+        line_trace.y.push(y_coords[start], y_coords[end], null);
+        line_trace.z.push(z_coords[start], z_coords[end], null);
+      });
+
+      traces.push(line_trace);
+    });
+
+    // Joint names (H36M format - 17 joints)
+    const joint_names = [
+      '0:骨盤中心',    // 0: pelvis
+      '1:右股関節',    // 1: right_hip
+      '2:右膝',        // 2: right_knee
+      '3:右足首',      // 3: right_ankle
+      '4:左股関節',    // 4: left_hip
+      '5:左膝',        // 5: left_knee
+      '6:左足首',      // 6: left_ankle
+      '7:胴体',        // 7: torso
+      '8:首',          // 8: neck
+      '9:鼻',          // 9: nose
+      '10:頭頂',       // 10: head
+      '11:左肩',       // 11: left_shoulder
+      '12:左肘',       // 12: left_elbow
+      '13:左手首',     // 13: left_wrist
+      '14:右肩',       // 14: right_shoulder
+      '15:右肘',       // 15: right_elbow
+      '16:右手首'      // 16: right_wrist
+    ];
+
+    // Joint points
+    const joint_trace = {
+      x: x_coords,
+      y: y_coords,
+      z: z_coords,
+      mode: 'markers',
+      type: 'scatter3d',
+      marker: {
+        size: 5,
+        color: 'rgb(255, 200, 50)',
+        line: {
+          color: 'white',
+          width: 1
+        }
+      },
+      text: joint_names,
+      hovertemplate: '<b>%{text}</b><br>' +
+        'X: %{x:.3f}<br>' +
+        'Y: %{y:.3f}<br>' +
+        'Z: %{z:.3f}<br>' +
+        '<extra></extra>',
+      showlegend: false,
+      name: '関節'
+    };
+
+    traces.push(joint_trace);
+
+    // Layout (MotionBERT style camera view)
+    const layout = {
+      autosize: true,
+      scene: {
+        aspectmode: 'data',
+        xaxis: {
+          title: { text: 'X', font: { color: 'white', size: 14 } },
+          tickfont: { color: 'white', size: 12 },
+          backgroundcolor: 'rgb(30, 30, 50)',
+          gridcolor: 'rgb(80, 80, 100)',
+          showbackground: true,
+          zeroline: false
+        },
+        yaxis: {
+          title: { text: 'Y (上下)', font: { color: 'white', size: 14 } },
+          tickfont: { color: 'white', size: 12 },
+          backgroundcolor: 'rgb(30, 30, 50)',
+          gridcolor: 'rgb(80, 80, 100)',
+          showbackground: true,
+          zeroline: false
+        },
+        zaxis: {
+          title: { text: 'Z (深度)', font: { color: 'white', size: 14 } },
+          tickfont: { color: 'white', size: 12 },
+          backgroundcolor: 'rgb(30, 30, 50)',
+          gridcolor: 'rgb(80, 80, 100)',
+          showbackground: true,
+          zeroline: false
+        },
+        camera: {
+          eye: { x: 1.8, y: 1.8, z: 1.2 },
+          center: { x: 0, y: 0, z: 0 }
+        }
+      },
+      paper_bgcolor: 'rgb(30, 30, 50)',
+      plot_bgcolor: 'rgb(30, 30, 50)',
+      margin: { l: 0, r: 0, b: 0, t: 0 },
+      legend: {
+        x: 0.02,
+        y: 0.98,
+        font: { color: 'white', size: 12 },
+        bgcolor: 'rgba(50, 50, 70, 0.8)'
+      }
+    };
+
+    const config = {
+      responsive: true,
+      displayModeBar: true,
+      displaylogo: false,
+      modeBarButtonsToRemove: ['toImage', 'sendDataToCloud']
+    };
+
+    // Render the plot
+    Plotly.newPlot('pose-3d-plot', traces, layout, config);
+
+    // Tab switching function
+    function showTab(event, tabName) {
+      // Hide all tabs
+      document.getElementById('tab-angles').classList.add('hidden');
+      document.getElementById('tab-coords-3d').classList.add('hidden');
+      document.getElementById('tab-coords-2d').classList.add('hidden');
+
+      // Show selected tab
+      document.getElementById('tab-' + tabName).classList.remove('hidden');
+
+      // Update tab active state
+      const tabs = document.querySelectorAll('.tabs .tab');
+      tabs.forEach(tab => tab.classList.remove('tab-active'));
+      event.target.classList.add('tab-active');
+    }
+  </script>
+</body>
+
+</html>

@@ -66,6 +66,8 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+# External library: MotionBERT (MIT License)
+"src/etude_pose_estimator/motionbert/*" = ["ALL"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["etude_pose_estimator"]
@@ -76,3 +78,8 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "--strict-markers --cov=etude_pose_estimator --cov-report=term-missing --cov-report=html --cov-fail-under=80"
+
+[tool.coverage.run]
+omit = [
+    "*/motionbert/*",  # External library (MIT License)
+]
