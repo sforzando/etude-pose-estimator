@@ -1,0 +1,34 @@
+{
+  "extends": ["markuplint:recommended"],
+  "parser": {
+    ".html$": "@markuplint/html-parser"
+  },
+  "rules": {
+    "invalid-attr": false,
+    "required-attr": {
+      "severity": "warning"
+    },
+    "require-accessible-name": {
+      "severity": "error"
+    },
+    "permitted-contents": {
+      "severity": "warning"
+    },
+    "heading-levels": false,
+    "landmark-roles": {
+      "severity": "warning"
+    },
+    "wai-aria": {
+      "severity": "warning"
+    },
+    "required-h1": false
+  },
+  "nodeRules": [
+    {
+      "selector": "img[id]",
+      "rules": {
+        "required-attr": false
+      }
+    }
+  ]
+}

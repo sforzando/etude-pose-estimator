@@ -6,6 +6,29 @@
 
 スマホで撮影したポーズ動画/画像をサーバーで解析し、基準ポーズとの類似度を判定するWebアプリケーション。
 
+## 開発ガイドライン
+
+- ユーザとの応答は必ず日本語で対応せよ
+- 不確かな情報は必ず確認してから回答せよ（特に日付、バージョン情報、コマンド名など）
+  - Claude Codeの知識は2年ほど古い
+  - ユーザから提示されたURLは必ず参照せよ
+  - Playwright, Context 7, Serena, Terraform等のMCPを積極的に活用せよ
+- Pythonコードは[Googleスタイル](https://google.github.io/styleguide/pyguide.html)に準拠せよ
+- ソースコード中のコメントおよびログ出力は英語に統一せよ
+- 必ずTaskfile.ymlに定義されたコマンドを使用せよ
+- 既存の実装パターンを必ず確認せよ
+- LinterやFormatterの警告を無視しない
+  - 型をなるべく厳密に記述する
+  - Linter等のエラーがある限りコミットできない
+- 機能追加に伴って、ユニットテスト、統合テスト、E2Eテストを拡充せよ
+  - カバレッジが不足して限りコミットできない
+- Git操作ルール - Git操作は基本的にユーザーが行う
+  - Claude Codeが実行して良いGit操作
+    - Issue着手時のブランチ作成のみ（`git switch -c {ブランチ名}`）
+      - Issue番号がある場合: `{0埋め3桁のIssue番号}_機能名` 形式でブランチを作成
+      - 例: Issue #19の場合は `019_prepare_github_actions` のようなブランチ名
+  - mainブランチで直接作業することは厳禁
+
 ## 要件
 
 - 動画・静止画入力対応
@@ -112,3 +135,11 @@ etude-pose-estimator/
 
 1. <https://github.com/Walter0807/MotionBERT> からモデルコードを取得
 2. チェックポイントをダウンロード
+
+## Lefthookセットアップ
+
+コミット前に
+
+- git-secretによる暗号化
+- ruffによるフォーマットとリント
+- pytestを実行してカバレッジ計測

@@ -1,0 +1,19 @@
+# Gemini API Configuration
+export GEMINI_API_KEY="your-api-key-here"
+
+# Server Configuration
+export PORT=8888
+export HOST="0.0.0.0"
+export DEBUG="true"
+
+# Model Paths
+export YOLO_MODEL_PATH="models/yolo11x-pose.pt"
+export MOTIONBERT_MODEL_PATH="models/motionbert/checkpoint.pth.tar"
+
+# File Upload Configuration
+export MAX_UPLOAD_SIZE=104857600  # 100MB
+export ALLOWED_EXTENSIONS=".jpg,.jpeg,.png,.mp4,.mov"
+
+# Data Directory
+export REFERENCE_DIR="data/references"
+export UPLOAD_DIR="uploads"

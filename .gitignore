@@ -283,3 +283,26 @@ pyrightconfig.json
 
 
 # End of https://www.toptal.com/developers/gitignore/api/osx,windows,linux,python,visualstudiocode,data
+
+### Project Specific ###
+
+# Playwright files
+.playwright-mcp/
+
+# Model files (large binary files)
+models/*.pt
+models/*.pth
+models/*.pth.tar
+models/MotionBERT/
+
+# Uploaded files (temporary)
+data/uploads/
+
+# Reference poses (may contain user data)
+data/references/*.json
+data/references/images/
+
+# Git Secret files
+.gitsecret/keys/random_seed
+!*.secret
+.envrc
