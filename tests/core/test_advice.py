@@ -19,7 +19,7 @@ class TestGeminiAdviceGenerator:
     def test_initialization_with_api_key(self) -> None:
         """Test that generator initializes with valid API key."""
         generator = GeminiAdviceGenerator(api_key="test_api_key")
-        assert generator.model_name == "gemini-3-flash-preview"
+        assert generator.model_name == "gemini-3.1-pro-preview"
 
     def test_initialization_without_api_key_raises_error(self) -> None:
         """Test that empty API key raises ValueError."""

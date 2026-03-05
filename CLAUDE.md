@@ -54,10 +54,10 @@
 - 3D座標でProcrustes解析
 - 位置・スケール・回転の違いを自動除去
 
-### アドバイス生成: Gemini 3 Flash
+### アドバイス生成: Gemini 3.1 Pro
 
 - `google-genai` パッケージ
-- モデル: `gemini-3-flash-preview`
+- モデル: `gemini-3.1-pro-preview`
 - 関節角度の差分から改善アドバイスを日英で生成
 
 ### フロントエンド
